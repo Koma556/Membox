@@ -1,0 +1,10 @@
+#ignora = /fail
+Sock path = /win
+#cass
+te = 24
+w = 12
+= 3
+=4
+#tup 
+tup = 5
+po = /end

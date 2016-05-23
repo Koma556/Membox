@@ -93,13 +93,17 @@ int readHeader(long fd, message_hdr_t *hdr){
 	char *storage;
 	
 	//alloco storage per ospitare sia op che chiave
-	if((storage = (char*)malloc(sizeof(op_t)+sizeof(membox_key_t))) == NULL)
-		{errno = ENOMEM; return -1;}
+	if((storage = (char*)malloc(sizeof(op_t)+sizeof(membox_key_t))) == NULL){
+		errno = ENOMEM; 
+		return -1;
+	}
 	
 	//leggo l'intera connessione
 	ck = read(fd, storage, sizeof(op_t)+sizeof(membox_key_t));
-	if(ck < 0)	
+	if(ck < 0){	
+		free(storage);
 		return -1;
+	}
 		
 	//salvo storage in hdr
 	memcpy(&hdr->op, storage, sizeof(op_t));
@@ -120,33 +124,36 @@ int readHeader(long fd, message_hdr_t *hdr){
  */
 int readData(long fd, message_data_t *data){
 	int ck = 0;
+	unsigned int dim;
 	char *storage;
 	
-	//alloco storage per ospitare solo la dimensione di data
-	if((storage = (char*)malloc(sizeof(unsigned int))) == NULL)
-		{errno = ENOMEM; return -1;}
-	
 	//leggo dimensione di data
-	ck = read(fd, storage, sizeof(unsigned int));
+	ck = read(fd, &dim, sizeof(unsigned int));
 	if(ck < 0)	
 		return -1;
 		
 	//salvo dimensione di data
-	memcpy(&data->len, storage, sizeof(unsigned int));
-	free(storage);
+	memcpy(&data->len, &dim, sizeof(unsigned int));
 	
 	//alloco storage per ospitare data
-	if((storage = (char*)malloc(sizeof(char)*data->len)) == NULL)
-		{errno = ENOMEM; return -1;}
+	if((storage = (char*)malloc(sizeof(char)*dim)) == NULL){
+		errno = ENOMEM; 
+		return -1;
+	}
 	
 	//leggo data dal socket 
 	ck = read(fd, storage, (sizeof(char)*data->len));
-	if(ck < 0)	
+	if(ck < 0){	
+		free(storage);
 		return -1;
+	}
 	
 	//alloco data->buf e vi salvo storage
-	if((data->buf = (char*)malloc(sizeof(char)*data->len)) == NULL)
-		{errno = ENOMEM; return -1;}
+	if((data->buf = (char*)malloc(sizeof(char)*data->len)) == NULL){
+		errno = ENOMEM;
+		free(storage);
+		return -1;
+	}
 	memcpy(&data->buf, storage, sizeof(char)*data->len);
 	
 	free(storage);
@@ -172,27 +179,35 @@ int sendRequest(long fd, message_t *msg){
 	char* storage;
 	
 	//preparo hdr
-	if((storage = (char*)malloc(sizeof(op_t)+sizeof(membox_key_t))) == NULL)
-		{errno = ENOMEM; return -1;}
+	if((storage = (char*)malloc(sizeof(op_t)+sizeof(membox_key_t))) == NULL){
+		errno = ENOMEM; 
+		return -1;
+	}
 		
 	memcpy(storage, &msg->hdr.op, sizeof(op_t));
 	memcpy(storage+sizeof(op_t), &msg->hdr.key, sizeof(membox_key_t));
 	
 	//mando hdr
-	if((write(fd, storage, sizeof(op_t)+sizeof(membox_key_t))) == -1)
+	if((write(fd, storage, sizeof(op_t)+sizeof(membox_key_t))) == -1){
+		free(storage);
 		return -1;
+	}
 	free(storage);
 	
 	//preparo data
-	if((storage = (char*)malloc(sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == NULL)
-		{errno = ENOMEM; return -1;}
+	if((storage = (char*)malloc(sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == NULL){
+		errno = ENOMEM; 
+		return -1;
+	}
 		
 	memcpy(storage, &msg->data.len, sizeof(unsigned int));
 	memcpy(storage+sizeof(op_t), msg->data.buf, sizeof(char)*msg->data.len);
 	
 	//mando data
-	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1)
+	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){
+		free(storage);
 		return -1;
+	}
 	free(storage);
 	
 	return 0;

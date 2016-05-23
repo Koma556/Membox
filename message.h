@@ -9,7 +9,7 @@
 #define MESSAGE_H_
 
 #include <assert.h>
-#include <ops.h>
+#include </home/groot/Downloads/Git/Membox/ops.h> //TEST SU IDE RIMUOVERE PER IL MAKE
 
 /**
  * @file  message.h
