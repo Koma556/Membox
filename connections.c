@@ -31,18 +31,6 @@
  *        tra i clients ed il server membox
  */
 
-/**@function waitFor
- * @brief Aspetta un certo numero di secondi. Presa da stackoverflow.
- * 
- * @param secs tempo da aspettare
- * 
- */
-
-void waitFor (unsigned int secs) {
-    unsigned int retTime = time(0) + secs;
-    while (time(0) < retTime);
-}
-
 /**
  * @function openConnection
  * @brief Apre una connessione AF_UNIX verso il server membox.
@@ -55,11 +43,55 @@ void waitFor (unsigned int secs) {
  *         -1 in caso di errore
  */
 int openConnection(char* path, unsigned int ntimes, unsigned int secs){
-	int i = 0;
+	int fd, i = 0, ck;
+	struct sockaddr_un addr;
+	
+	if(strlen(path) > UNIX_PATH_MAX)
+	{
+		errno = E2BIG;
+		return -1;
+	}
+	
+	strncpy(addr.sun_path, path, UNIX_PATH_MAX);
+	addr.sun_family = AF_UNIX;
+
+	if((fd = socket(AF_UNIX,SOCK_STREAM,0)) == -1){
+		errno = EIO;
+		return -1;
+	}
+	
+	while ( (ck = connect(fd,(struct sockaddr*)&addr, sizeof(addr))) == -1 && i++ < ntimes) 
+	{
+		printf("Connecting, please wait...");
+		sleep(secs);
+	}
+		
+	if(ck == 0) return fd;
+	else
+	{
+		close(fd);
+		return -1;
+	}
+}
+
+// -------- server side ----- 
+
+/**
+ * @function startConnection
+ * @brief Crea un socket AF_UNIX alla path specificata
+ *
+ * @param path Path del socket AF_UNIX da creare
+ *
+ * @return 0 in caso di successo -1 in caso di errore
+ */
+int startConnection(char* path){
 	int ck;
 	struct sockaddr_un addr;
 	
-	if(strlen(path) > UNIX_PATH_MAX) { errno = E2BIG; return -1;}
+	if(strlen(path) > UNIX_PATH_MAX){ 
+		errno = E2BIG; 
+		return -1;
+	}
 	
 	strncpy(addr.sun_path, path, UNIX_PATH_MAX);
 	addr.sun_family = AF_UNIX;
@@ -67,17 +99,9 @@ int openConnection(char* path, unsigned int ntimes, unsigned int secs){
 	if((ck = socket(AF_UNIX, SOCK_STREAM,0)) == -1) return -1;
 	if((bind(ck,(struct sockaddr *)&addr, sizeof(addr))) == -1) return -1;
 	if((listen(ck, SOMAXCONN)) == -1) return -1;
-	
-	//ciclo di retries
-	while(i < ntimes || ((listen(ck, SOMAXCONN)) == -1)){
-		waitFor(secs);
-		i++;
-	}
 		
 	return ck;
 }
-
-// -------- server side ----- 
 
 /**
  * @function readHeader
@@ -225,8 +249,8 @@ int sendRequest(long fd, message_t *msg){
 int readReply(long fd, message_t *msg);
 
 #endif /* CONNECTIONS_H_ */
-int main()
+/*int main()
 {
     // TODO: implementation
     return 0;
-}
+}*/

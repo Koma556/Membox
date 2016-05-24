@@ -1,5 +1,5 @@
 #ignora = /fail
-Sock path = /win
+Sock path = /tmp/mbox_socket
 #cass
 te = 24
 w = 12

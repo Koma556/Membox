@@ -14,7 +14,7 @@
 #define UNIX_PATH_MAX  64
 #endif
 
-#include <message.h>
+#include </home/groot/Downloads/Git/Membox/message.h> 
 
 /**
  * @file  connection.h
@@ -36,6 +36,16 @@
 int openConnection(char* path, unsigned int ntimes, unsigned int secs);
 
 // -------- server side ----- 
+
+/**
+ * @function startConnection
+ * @brief Crea un socket AF_UNIX alla path specificata
+ *
+ * @param path Path del socket AF_UNIX da creare
+ *
+ * @return 0 in caso di successo -1 in caso di errore
+ */
+int startConnection(char* path);
 
 /**
  * @function readHeader
