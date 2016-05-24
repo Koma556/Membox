@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
 				if((err = pthread_create(&thrds[i], NULL, threadd , (void*) 1)) != 0)
 				{
 					perror("Unable to create client thread!\n");
-					return -1;
+					exit(EXIT_FAILURE);
 				}else
 				{
 					i++;
