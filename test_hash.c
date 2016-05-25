@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <icl_hash.h>
+#include </home/groot/Downloads/Git/Membox/icl_hash.h>
 
 /* ---------------------------------------------------------------------- 
  * Hashing funtions
@@ -24,7 +24,7 @@ static inline int ulong_key_compare( void *key1, void *key2  ) {
 }
 /* --------------------------------------------------------------------- */
 
-
+/*
 int main() {
 
     icl_hash_t *hash = icl_hash_create(1024, ulong_hash_function, ulong_key_compare);
@@ -61,3 +61,4 @@ int main() {
     return 0;
 
 }
+*/

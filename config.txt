@@ -1,8 +1,8 @@
 #ignora = /fail
 Sock path = /tmp/mbox_socket
 #cass
-te = 24
-w = 12
+te = 1
+threadsinpool = 30
 = 3
 =4
 #tup 
