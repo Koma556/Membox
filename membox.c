@@ -50,8 +50,8 @@ static listSimple* connectionQueue, *head;
 static pthread_mutex_t actvth = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t actwait;
 // mutex to be called before a mboxStats update
-static pthread_mutex_t stOP = PTHREAD_MUTEX_INITIALIZER;// stCO = PTHREAD_MUTEX_INITIALIZER, stST = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t stOPwait; // stCOwait, stSTwait;
+static pthread_mutex_t stOP = PTHREAD_MUTEX_INITIALIZER, stCO = PTHREAD_MUTEX_INITIALIZER, stST = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t stOPwait, stCOwait, stSTwait;
 // mutex for connectionQueue
 static pthread_mutex_t coQU = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t coQUwait;
@@ -240,10 +240,34 @@ message_t selectorOP(message_t *msg){
 		default: 
 		{
 			perror("OP not recognized.\n");
-			EXIT_FAILURE;
+			exit(EXIT_FAILURE);
 		}
 	}
 	return reply;
+}
+
+void printMsg(message_t* msg, int thrd){
+	//printf("==============THREAD#%d==============\nHeader OP: %d\nHeader Key: %d\nData Len: %lu\nData Payload: %s\n", thrd, msg->hdr.op, msg->hdr.key, msg->data.len, msg->data.buf); 
+	printf("msg to thread %d success\n", thrd);
+}
+
+int initActivity(int flag){
+	int err = -1, thrdnumber;
+	do
+	{
+		if((err = pthread_mutex_lock(&actvth)) == 0)
+		{
+			//pthread_cond_init(&actwait, NULL);
+			activethreads+=flag;
+			if(flag == 1)
+			{
+				thrdnumber = activethreads;
+				printf("I'm thread %d\n",thrdnumber); 
+			}
+			pthread_mutex_unlock(&actvth);
+		}
+	}while(err != 0);
+	return thrdnumber;
 }
 
 void *dealmaker(void* arg){
@@ -252,14 +276,7 @@ void *dealmaker(void* arg){
 	message_t* receiver;
 	
 	//lock e aggiungo al numero di thread attivi
-	if((err = pthread_mutex_lock(&actvth)) == 0)
-	{
-		pthread_cond_init(&actwait, NULL);
-		activethreads++;
-		thrdnumber = activethreads;
-		pthread_mutex_unlock(&actvth);
-	}
-	else(pthread_cond_wait(&actwait, &actvth));
+	thrdnumber = initActivity(1);
 	
 	// alloco la struttura dati che riceve il messaggio
 	if((receiver = (message_t*)malloc(sizeof(message_t))) == NULL)
@@ -267,47 +284,50 @@ void *dealmaker(void* arg){
 		errno = ENOMEM;
 		exit(EXIT_FAILURE);
 	}
+	receiver->data.len = 0; //TODO: serve questa?
 	
 	while(1)
-	{	
-		printf("Hello from the main while cycle of thread %d!\n", thrdnumber);
+	{
 		// apro la struttura condivisa e leggo head
 		if(queueLength > 0)
 		{
-			if((err = pthread_mutex_lock(&coQU)) == 0)
+			err = -1;
+			do
 			{
-				printf("Thread %d acquired mutex on stOP\n", thrdnumber);
-				pthread_cond_init(&coQUwait, NULL);
-				if(queueLength <= 0)
+				if((err = pthread_mutex_lock(&coQU)) == 0)
 				{
-					pthread_mutex_unlock(&stOP); 
-					printf("Thread %d releasing mutex on stOP\n", thrdnumber);
-				}
-				else
-				{
-					soktAcc = head->sokAddr;
-					tmp = head;
-					head = head->next;
-					free(tmp);
-					queueLength--;
-					pthread_mutex_unlock(&stOP);
+					//printf("Thread %d acquired mutex on stOP\n", thrdnumber);
+					//pthread_cond_init(&coQUwait, NULL);
+					if(queueLength > 0)
+					{
+						soktAcc = head->sokAddr;
+						tmp = head;
+						head = head->next;
+						free(tmp);
+						queueLength--;
+					}else soktAcc = -1;
+					pthread_mutex_unlock(&coQU);
 					
-					printf("Thread %d about to check soktAcc (which is %d)\n", thrdnumber, soktAcc);
+					//printf("Thread %d about to check soktAcc (which is %d)\n", thrdnumber, soktAcc);
 					// controllo d'aver preso un socket valido
 					if(soktAcc > 0)
 					{
 						// appena accetto una connessione faccio la mutex per aggiornare mboxStats
-						if((err = pthread_mutex_lock(&stOP)) == 0)
+						err = -1;
+						do
 						{
-							pthread_cond_init(&actwait, NULL);
-							if(statConnections(0) != 0)
+							if((err = pthread_mutex_lock(&stCO)) == 0)
 							{
-								strerror(errno);
-								exit(EXIT_FAILURE);
+								//pthread_cond_init(&stCOwait, NULL);
+								if(statConnections(0) != 0)
+								{
+									printf("%s\n", strerror(errno));
+									exit(EXIT_FAILURE);
+								}
+								pthread_mutex_unlock(&stCO);
 							}
-							pthread_mutex_unlock(&stOP);
-						}else(pthread_cond_wait(&stOPwait, &stOP));
-						
+						}
+						while(err != 0);
 						// Leggo quello che il client mi scrive
 						if(readHeader(soktAcc, &receiver->hdr)!=0)
 						{
@@ -321,24 +341,35 @@ void *dealmaker(void* arg){
 						}
 						
 						// mando il messaggio a selectorOP che si occupa del resto
-						selectorOP(receiver);
+						//selectorOP(receiver);
+						printMsg(receiver, thrdnumber);
 						
 						// chiudo il socket e rimuovo la connessione dalle attive
-						if((err = pthread_mutex_lock(&stOP)) == 0)
+						err = -1;
+						do
 						{
-							pthread_cond_init(&actwait, NULL);
-							close(soktAcc);
-							statConnections(1);
-							pthread_mutex_unlock(&stOP);
-						}else(pthread_cond_wait(&stOPwait, &stOP));
-						
+							if((err = pthread_mutex_lock(&stCO)) == 0)
+							{
+								//pthread_cond_init(&stCOwait, NULL);
+								close(soktAcc);
+								statConnections(1);
+								pthread_mutex_unlock(&stCO);
+							}
+						}
+						while(err != 0);
 						// TODO: BREAK se ricevo il segnale dall'utente
 					}
-					else exit(EXIT_FAILURE);
+					else
+					{
+						printf("ERRORE LETTURA SOCKET INESISTENTE! Riga 363\n");
+						//exit(EXIT_FAILURE);
+					}
 				}
-			}else{printf("thread %d waiting on mutex\n", thrdnumber);(pthread_cond_wait(&stOPwait, &stOP));}
+			}
+			while(err != 0);
 		}else sleep(1);
-	}	
+	}
+	initActivity(-1);
 	pthread_exit(NULL);
 }
 
@@ -403,7 +434,7 @@ int main(int argc, char *argv[]) {
 	// ALLOCATE THREAD POOL
 	for(i = 0; i < threadsinpool; i++)
 	{
-		if((err = pthread_create(&thrds[0], NULL, dealmaker , (void*)socID)) != 0)
+		if((err = pthread_create(&thrds[i], NULL, dealmaker , (void*) socID)) != 0)
 		{
 			perror("Unable to create client thread!\n");
 			exit(EXIT_FAILURE);
@@ -413,26 +444,26 @@ int main(int argc, char *argv[]) {
 	// accept connections and store them into the shared array
     while(1)
 	{
-		printf("If you say run, I'll run with you\n");
+		//printf("If you say run, I'll run with you\n");
 		if(mboxStats.concurrent_connections < maxconnections)
 		{
-			printf("If you say hide, we'll hide\n");
+			//printf("If you say hide, we'll hide\n");
 			if(maxconnections > queueLength)
 			{
-				printf("Because my love for you\n");
+				//printf("Because my love for you\n");
 				
 				
-					printf("Would break my heart in two\n");
+					//printf("Would break my heart in two\n");
 				
-					printf("If you should fall\n");
+					//printf("If you should fall\n");
 					if((connectionQueue->sokAddr = accept(socID, NULL, 0)) == -1)
 					{
-						strerror(errno);
+						printf("%s\n", strerror(errno));
 						exit(EXIT_FAILURE);
 					}
 					else
 					{
-						printf("Into my arms\n");
+						//printf("Into my arms\n");
 						connectionQueue->next = (listSimple*)malloc(sizeof(listSimple));
 						connectionQueue = connectionQueue->next;
 						connectionQueue->sokAddr = -1;

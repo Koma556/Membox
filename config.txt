@@ -1,7 +1,7 @@
 #ignora = /fail
 Sock path = /tmp/mbox_socket
 #cass
-te = 1
+maxconnections = 40
 threadsinpool = 30
 = 3
 =4
