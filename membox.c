@@ -201,6 +201,7 @@ int main(int argc, char *argv[]) {
     socketpath = readLine(fp);
     config = readConfig(fp);
     statfilepath = readLine(fp);
+    fclose(fp);
     
     // assegno i valori dell'array config a variabili GLOBALI
     // gestisco bad config

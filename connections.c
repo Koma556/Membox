@@ -54,7 +54,7 @@ int openConnection(char* path, unsigned int ntimes, unsigned int secs){
 	
 	strncpy(addr.sun_path, path, UNIX_PATH_MAX);
 	addr.sun_family = AF_UNIX;
-
+	
 	if((fd = socket(AF_UNIX,SOCK_STREAM,0)) == -1){
 		errno = EIO;
 		return -1;
@@ -62,14 +62,15 @@ int openConnection(char* path, unsigned int ntimes, unsigned int secs){
 	
 	while ( (ck = connect(fd,(struct sockaddr*)&addr, sizeof(addr))) == -1 && i++ < ntimes) 
 	{
-		printf("Connecting, please wait...");
+		printf("Connecting, please wait...\n");
 		sleep(secs);
 	}
-		
+	
 	if(ck == 0) return fd;
 	else
 	{
 		close(fd);
+		printf("Failed to Connect.\n");
 		return -1;
 	}
 }
@@ -148,19 +149,26 @@ int readHeader(long fd, message_hdr_t *hdr){
  */
 int readData(long fd, message_data_t *data){
 	int ck = 0;
-	unsigned int dim;
 	char *storage;
 	
 	//leggo dimensione di data
-	ck = read(fd, &dim, sizeof(unsigned int));
-	if(ck < 0)	
+	if((storage = (char*)malloc(sizeof(unsigned int))) == NULL){
+		errno = ENOMEM; 
 		return -1;
+	}
+	ck = read(fd, storage, sizeof(unsigned int));
+	if(ck < 0)
+	{	
+		printf("%s\n", strerror(errno));
+		return -1;
+	}
 		
 	//salvo dimensione di data
-	memcpy(&data->len, &dim, sizeof(unsigned int));
+	memcpy(&data->len, storage, sizeof(unsigned int));
+	free(storage);
 	
 	//alloco storage per ospitare data
-	if((storage = (char*)malloc(sizeof(char)*dim)) == NULL){
+	if((storage = (char*)malloc(sizeof(char)*(data->len))) == NULL){
 		errno = ENOMEM; 
 		return -1;
 	}
@@ -171,16 +179,8 @@ int readData(long fd, message_data_t *data){
 		free(storage);
 		return -1;
 	}
+	data->buf = storage;
 	
-	//alloco data->buf e vi salvo storage
-	if((data->buf = (char*)malloc(sizeof(char)*data->len)) == NULL){
-		errno = ENOMEM;
-		free(storage);
-		return -1;
-	}
-	memcpy(&data->buf, storage, sizeof(char)*data->len);
-	
-	free(storage);
 	return 0;
 }
 
@@ -207,7 +207,6 @@ int sendRequest(long fd, message_t *msg){
 		errno = ENOMEM; 
 		return -1;
 	}
-		
 	memcpy(storage, &msg->hdr.op, sizeof(op_t));
 	memcpy(storage+sizeof(op_t), &msg->hdr.key, sizeof(membox_key_t));
 	
@@ -226,7 +225,6 @@ int sendRequest(long fd, message_t *msg){
 		
 	memcpy(storage, &msg->data.len, sizeof(unsigned int));
 	memcpy(storage+sizeof(op_t), msg->data.buf, sizeof(char)*msg->data.len);
-	
 	//mando data
 	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){
 		free(storage);
