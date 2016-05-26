@@ -36,16 +36,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef struct listS{
+	int sokAddr;
+	struct listS* next;
+}listSimple;
+
 static char *socketpath, *statfilepath;
-static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize, activethreads = 0, quit = 1;
+static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize, activethreads = 0, queueLength = 0;
 // Struttura dati condivisa
 static icl_hash_t* dataTable;
+static listSimple* connectionQueue, *head;
 // mutex
-static pthread_mutex_t dT = PTHREAD_MUTEX_INITIALIZER, actvth = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t actwait, tabwait;
+static pthread_mutex_t actvth = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t actwait;
 // mutex to be called before a mboxStats update
-static pthread_mutex_t stOP = PTHREAD_MUTEX_INITIALIZER, stCO = PTHREAD_MUTEX_INITIALIZER, stST = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t stOPwait, stCOwait, stSTwait;
+static pthread_mutex_t stOP = PTHREAD_MUTEX_INITIALIZER;// stCO = PTHREAD_MUTEX_INITIALIZER, stST = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t stOPwait; // stCOwait, stSTwait;
+// mutex for connectionQueue
+static pthread_mutex_t coQU = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t coQUwait;
 /* struttura che memorizza le statistiche del server, struct statistics 
  * e' definita in stats.h.
  *
@@ -194,7 +203,7 @@ int* readConfig(FILE* fd){
  */
 message_t selectorOP(message_t *msg){
 	message_t reply;
-	unsigned int shkey;
+	//unsigned int shkey;
 	
 	switch(msg->hdr.op)
 	{
@@ -238,8 +247,8 @@ message_t selectorOP(message_t *msg){
 }
 
 void *dealmaker(void* arg){
-	int err, thrdnumber;
-	int sokt = (int)arg, soktAcc;
+	int err, thrdnumber, soktAcc;
+	listSimple* tmp;
 	message_t* receiver;
 	
 	//lock e aggiungo al numero di thread attivi
@@ -259,54 +268,67 @@ void *dealmaker(void* arg){
 		exit(EXIT_FAILURE);
 	}
 	
+	printf("Thread %d primed and ready!\n", thrdnumber);
 	while(1)
-	{
-		// TODO list of pending connections
-		
-		printf("Thread %d primed and ready!\n", thrdnumber);
-		if((soktAcc = accept(sokt, NULL, 0)) == -1)
+	{	
+		// apro la struttura condivisa e leggo head
+		if((err = pthread_mutex_lock(&coQU)) == 0)
 		{
-			strerror(errno);
-			exit(EXIT_FAILURE);
-		}
-	
-		// appena accetto una connessione faccio la mutex per aggiornare mboxStats
-		if((err = pthread_mutex_lock(&stOP)) == 0)
-		{
-			pthread_cond_init(&actwait, NULL);
-			if(statConnections(0) != 0)
+			pthread_cond_init(&coQUwait, NULL);
+			if(queueLength > 0) pthread_mutex_unlock(&stOP);
+			else
 			{
-				strerror(errno);
+				soktAcc = head->sokAddr;
+				tmp = head;
+				head = head->next;
+				free(tmp);
+				queueLength--;
+				pthread_mutex_unlock(&stOP);
+			}
+		}else(pthread_cond_wait(&stOPwait, &stOP));
+		
+		// controllo d'aver preso un socket valido
+		if(soktAcc != -1)
+		{
+			// appena accetto una connessione faccio la mutex per aggiornare mboxStats
+			if((err = pthread_mutex_lock(&stOP)) == 0)
+			{
+				pthread_cond_init(&actwait, NULL);
+				if(statConnections(0) != 0)
+				{
+					strerror(errno);
+					exit(EXIT_FAILURE);
+				}
+				pthread_mutex_unlock(&stOP);
+			}else(pthread_cond_wait(&stOPwait, &stOP));
+			
+			// Leggo quello che il client mi scrive
+			if(readHeader(soktAcc, &receiver->hdr)!=0)
+			{
+				errno = EIO;
 				exit(EXIT_FAILURE);
 			}
-			pthread_mutex_unlock(&stOP);
-		}else(pthread_cond_wait(&stOPwait, &stOP));
-		
-		// Leggo quello che il client mi scrive
-		if(readHeader(soktAcc, &receiver->hdr)!=0)
-		{
-			errno = EIO;
-			exit(EXIT_FAILURE);
+			if(readData(soktAcc, &receiver->data)!=0)
+			{
+				errno = EIO;
+				exit(EXIT_FAILURE);
+			}
+			
+			// mando il messaggio a selectorOP che si occupa del resto
+			selectorOP(receiver);
+			
+			// chiudo il socket e rimuovo la connessione dalle attive
+			if((err = pthread_mutex_lock(&stOP)) == 0)
+			{
+				pthread_cond_init(&actwait, NULL);
+				close(soktAcc);
+				statConnections(1);
+				pthread_mutex_unlock(&stOP);
+			}else(pthread_cond_wait(&stOPwait, &stOP));
+			
+			// TODO: BREAK se ricevo il segnale dall'utente
 		}
-		if(readData(soktAcc, &receiver->data)!=0)
-		{
-			errno = EIO;
-			exit(EXIT_FAILURE);
-		}
-		
-		// mando il messaggio a selectorOP che si occupa del resto
-		selectorOP(receiver);
-		
-		// chiudo il socket e rimuovo la connessione dalle attive
-		if((err = pthread_mutex_lock(&stOP)) == 0)
-		{
-			pthread_cond_init(&actwait, NULL);
-			close(soktAcc);
-			statConnections(1);
-			pthread_mutex_unlock(&stOP);
-		}else(pthread_cond_wait(&stOPwait, &stOP));
-		
-		// TODO: BREAK se ricevo il segnale dall'utente
+		else sleep(1);
 	}
 	pthread_exit(NULL);
 }
@@ -345,9 +367,18 @@ int main(int argc, char *argv[]) {
 	}
     
     free(config);
+    
+    // NEXT 3 FUNCTIONS LACK ERROR HANDLING!!!!
+    
     // array dove salvo i pid dei thread
     thrds = calloc(threadsinpool, sizeof(pthread_t));
     
+	// array dove salvo le connessioni in attesa
+	connectionQueue = (listSimple*)malloc(sizeof(listSimple));
+	connectionQueue->sokAddr = -1;
+	connectionQueue->next = NULL;
+	head = connectionQueue;
+	
     // alloco la struttura dati d'hash condivisa
     dataTable = icl_hash_create(maxconnections*10, ulong_hash_function, ulong_key_compare);
         
@@ -370,10 +401,41 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
-	// wait on child threads
-    while (activethreads > 0)
+	// accept connections and store them into the shared array
+	
+    while(1)
 	{
-		sleep(1);
+		if(mboxStats.concurrent_connections < maxconnections)
+		{
+			if(maxconnections - threadsinpool < queueLength)
+			{
+				if((pthread_mutex_lock(&coQU)) == 0)
+				{
+					pthread_cond_init(&coQUwait, NULL);
+					if((connectionQueue->sokAddr = accept(socID, NULL, 0)) == -1)
+					{
+						strerror(errno);
+						exit(EXIT_FAILURE);
+					}
+					else
+					{
+						connectionQueue->next = (listSimple*)malloc(sizeof(listSimple));
+						connectionQueue = connectionQueue->next;
+						connectionQueue->sokAddr = -1;
+						connectionQueue->next = NULL;
+						queueLength++;
+					}
+					pthread_mutex_unlock(&coQU);
+				}
+				else(pthread_cond_wait(&coQUwait, &coQU));
+			}
+			else sleep(1);
+		}
+		else
+		{
+			sleep(1);
+			// send error message to client
+		}
 	}
 	
     return 0;
