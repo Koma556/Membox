@@ -43,12 +43,87 @@ static icl_hash_t* dataTable;
 // mutex
 static pthread_mutex_t dT = PTHREAD_MUTEX_INITIALIZER, actvth = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t actwait, tabwait;
-
+// mutex to be called before a mboxStats update
+static pthread_mutex_t stOP = PTHREAD_MUTEX_INITIALIZER, stCO = PTHREAD_MUTEX_INITIALIZER, stST = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t stOPwait, stCOwait, stSTwait;
 /* struttura che memorizza le statistiche del server, struct statistics 
  * e' definita in stats.h.
  *
  */
 struct statistics  mboxStats = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+
+/**
+ * @function statOP
+ * @brief increases the mboxStats values tied to the operations
+ * 
+ * @param opResult	the integer resulting from an OP function
+ * @param op 		the operation which we need to stat
+ */
+int statOP(int opResult, op_t op){
+	if(opResult == 0)
+	{
+		switch(op)
+		{
+			case PUT_OP: mboxStats.nget++;
+			case UPDATE_OP: mboxStats.nupdate++;
+			case LOCK_OP: mboxStats.nlock++;
+			case GET_OP: mboxStats.nget++;
+			case REMOVE_OP: mboxStats.nremove++;
+			default: return -1;
+		}
+	}
+	else
+	{
+		switch(op)
+		{
+			case PUT_OP: mboxStats.nget_failed++;
+			case UPDATE_OP: mboxStats.nupdate_failed++;
+			case LOCK_OP: mboxStats.nlock_failed++;
+			case GET_OP: mboxStats.nget_failed++;
+			case REMOVE_OP: mboxStats.nremove_failed++;
+			default: return -1;
+		}
+	}
+	return 0;
+}
+
+/**
+ * @function statConnections
+ * @brief handles the mboxStats concurrent connections
+ * 
+ * @param side		flag to identify if a connection has been opened or closed
+ */
+int statConnections(int side){
+	if(side == 0) mboxStats.concurrent_connections++;
+	else mboxStats.concurrent_connections--;
+	if(mboxStats.concurrent_connections < 0)
+	{
+		errno = EIO;
+		return -1;
+	}
+	else return 0;
+}
+
+/**
+ * @function statStructure
+ * @brief handles byte size and obj number stats for mboxStats
+ * 
+ * @param size 		size of object I just handled
+ * @param side		flag to control if I'm removing or adding objects
+ */
+int statStructure(int size, int side){
+	if(side == 1)
+	{
+		if(++mboxStats.current_objects > mboxStats.max_objects) mboxStats.max_objects = mboxStats.current_objects;
+		if((mboxStats.current_size += size) > mboxStats.max_size) mboxStats.max_size = mboxStats.current_size;
+	}
+	else
+	{
+		if((mboxStats.current_objects--) < 0) return -1;
+		if((mboxStats.current_size-= size) < 0) return -1;
+	}
+	return 0;
+}
 
 char* readLine(FILE* fd){
 	char *str, *p;
@@ -162,30 +237,82 @@ message_t selectorOP(message_t *msg){
 	return reply;
 }
 
-void *threadd(void* arg){
-	int err;
-	int sokt = *((int *) arg);
+void *dealmaker(void* arg){
+	int err, thrdnumber;
+	int sokt = (int)arg, soktAcc;
+	message_t* receiver;
 	
 	//lock e aggiungo al numero di thread attivi
-	if((err = pthread_mutex_lock(&actvth)) == 0){
+	if((err = pthread_mutex_lock(&actvth)) == 0)
+	{
 		pthread_cond_init(&actwait, NULL);
 		activethreads++;
-		//printf("Inside mutex thread %d\n", activethreads++);
+		thrdnumber = activethreads;
 		pthread_mutex_unlock(&actvth);
-	}else(pthread_cond_wait(&actwait, &actvth));
-	//printf("sokt ID: %d\n", sokt);
+	}
+	else(pthread_cond_wait(&actwait, &actvth));
 	
-	/*while(1){
-		//work
-		//ascolto connessioni su socket (sokt)
-		//selectorOP(msg*);
-	}*/
+	// alloco la struttura dati che riceve il messaggio
+	if((receiver = (message_t*)malloc(sizeof(message_t))) == NULL)
+	{
+		errno = ENOMEM;
+		exit(EXIT_FAILURE);
+	}
+	
+	while(1)
+	{
+		// TODO list of pending connections
+		
+		printf("Thread %d primed and ready!\n", thrdnumber);
+		if((soktAcc = accept(sokt, NULL, 0)) == -1)
+		{
+			strerror(errno);
+			exit(EXIT_FAILURE);
+		}
+	
+		// appena accetto una connessione faccio la mutex per aggiornare mboxStats
+		if((err = pthread_mutex_lock(&stOP)) == 0)
+		{
+			pthread_cond_init(&actwait, NULL);
+			if(statConnections(0) != 0)
+			{
+				strerror(errno);
+				exit(EXIT_FAILURE);
+			}
+			pthread_mutex_unlock(&stOP);
+		}else(pthread_cond_wait(&stOPwait, &stOP));
+		
+		// Leggo quello che il client mi scrive
+		if(readHeader(soktAcc, &receiver->hdr)!=0)
+		{
+			errno = EIO;
+			exit(EXIT_FAILURE);
+		}
+		if(readData(soktAcc, &receiver->data)!=0)
+		{
+			errno = EIO;
+			exit(EXIT_FAILURE);
+		}
+		
+		// mando il messaggio a selectorOP che si occupa del resto
+		selectorOP(receiver);
+		
+		// chiudo il socket e rimuovo la connessione dalle attive
+		if((err = pthread_mutex_lock(&stOP)) == 0)
+		{
+			pthread_cond_init(&actwait, NULL);
+			close(soktAcc);
+			statConnections(1);
+			pthread_mutex_unlock(&stOP);
+		}else(pthread_cond_wait(&stOPwait, &stOP));
+		
+		// TODO: BREAK se ricevo il segnale dall'utente
+	}
 	pthread_exit(NULL);
 }
 
 int main(int argc, char *argv[]) {
 	int *config, socID, err, i = 0;
-	int *arg = malloc(sizeof(int*));
 	pthread_t* thrds;
 	FILE *fp;
 	
@@ -222,14 +349,8 @@ int main(int argc, char *argv[]) {
     thrds = calloc(threadsinpool, sizeof(pthread_t));
     
     // alloco la struttura dati d'hash condivisa
-    dataTable = icl_hash_create(maxconnections, ulong_hash_function, ulong_key_compare);
+    dataTable = icl_hash_create(maxconnections*10, ulong_hash_function, ulong_key_compare);
         
-    // DEBUGGING PRINTS
-    {	printf("%s\n", socketpath);
-    	printf("%d\n%d\n%d\n%d\n%d\n", maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize);
-    	printf("%s\n", statfilepath);
-    }// END DEBUGGING PRINTS
-    
     // creo il socket
     if(remove(socketpath) == 0)printf("Cleaned up old Socket.\nPossible recovery after crash?\n");
     if((socID = startConnection(socketpath)) == -1)
@@ -239,46 +360,21 @@ int main(int argc, char *argv[]) {
 	}
 	else printf("Socket open.\n");
 	
-	printf("socket ID: %d\n", socID);
-	getchar();
-	
-	*arg = socID;
 	// ALLOCATE THREAD POOL
 	for(i = 0; i < threadsinpool; i++)
 	{
-		if((err = pthread_create(&thrds[i], NULL, threadd , arg)) != 0)
+		if((err = pthread_create(&thrds[0], NULL, dealmaker , (void*)socID)) != 0)
 		{
 			perror("Unable to create client thread!\n");
 			exit(EXIT_FAILURE);
 		}
 	}
 	
-	getchar();
-	free(arg);
-	// DEBUGGING PRINTS	
-	//	if(close(socID) == 0) printf("Socket closed.\n");
-	//	else printf("Couldn't close socket.\n");
-	//	if(remove(socketpath) == 0) printf("Socket removed.\n");
-	//	else printf("Couldn't remove socket.\n");
-	// END DEBUGGING PRINTS
+	// wait on child threads
+    while (activethreads > 0)
+	{
+		sleep(1);
+	}
 	
-	// Main Loop
-	/**
-	while(quit){
-		
-		while(maxconnections-threadsinpool >= 0)
-		{
-			// accetta connessione e salva i dati
-			if(activethreads < threadsinpool){
-				// assegna connessione a thread
-				
-			}else
-			{
-				//metti in coda la connessione
-			}
-		}
-    }
-    */
-    getchar();
     return 0;
 }

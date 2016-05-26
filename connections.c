@@ -100,7 +100,7 @@ int startConnection(char* path){
 	if((ck = socket(AF_UNIX, SOCK_STREAM,0)) == -1) return -1;
 	if((bind(ck,(struct sockaddr *)&addr, sizeof(addr))) == -1) return -1;
 	if((listen(ck, SOMAXCONN)) == -1) return -1;
-		
+	// needs the accept foo too
 	return ck;
 }
 
