@@ -46,15 +46,15 @@ static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize, 
 // Struttura dati condivisa
 static icl_hash_t* dataTable;
 static listSimple* connectionQueue, *head;
-// mutex
+// mutex for active threads
 static pthread_mutex_t actvth = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t actwait;
 // mutex to be called before a mboxStats update
 static pthread_mutex_t stOP = PTHREAD_MUTEX_INITIALIZER, stCO = PTHREAD_MUTEX_INITIALIZER, stST = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t stOPwait, stCOwait, stSTwait;
 // mutex for connectionQueue
 static pthread_mutex_t coQU = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t coQUwait;
+// mutex for dataTable
+static pthread_mutex_t dataMUTEX = PTHREAD_MUTEX_INITIALIZER;
 /* struttura che memorizza le statistiche del server, struct statistics 
  * e' definita in stats.h.
  *
@@ -156,7 +156,7 @@ char* readLine(FILE* fd){
 	}
 	
 	// rimuovo gli spazi
-	do{*str++;
+	do{str++;
 	}while(str[0] == ' ');
 	
 	// cerco ed eventualmente rimuovo newline
@@ -188,7 +188,7 @@ int* readConfig(FILE* fd){
 			free(conf);
 			return NULL;
 		}
-		*str++;	
+		str++;
 		conf[i] = atoi(str);
 	}
 	
@@ -201,40 +201,94 @@ int* readConfig(FILE* fd){
  * 
  * @param msg	puntatore al messaggio gia' spacchettato 
  */
-message_t selectorOP(message_t *msg){
-	message_t reply;
-	//unsigned int shkey;
+message_t* selectorOP(message_t *msg, int socID, int* quit){
+	message_t* reply;
+	icl_entry_t* slot;
+	char* tmp = NULL;
+	int result = -1; //TODO: set result = 0 if op success, -1 if failure
 	
+	//TODO: allocare reply
+	reply = (message_t*)malloc(sizeof(message_t));
+	
+	if(msg->hdr.op == END_OP)
+	{
+		// rimuovo eventuali lock sulla repository
+		if(dataTable->lock == socID) dataTable->lock = -1;
+		quit = 0;
+		return NULL;
+	}
+	if(dataTable->lock != socID || dataTable->lock != -1)
+	{
+		//TODO: tell client repository is locked and return
+	}
 	switch(msg->hdr.op)
 	{
 		//	PUT_OP          = 0,   /// inserimento di un oggetto nel repository
 		case PUT_OP:
 		{
-			
+			if((slot = icl_hash_insert(dataTable, (void*) (intptr_t) msg->hdr.key, (void*) (intptr_t) msg->data.len, (void*) (intptr_t) msg->data.buf)) == NULL)
+			{
+				//TODO: key esiste già, mandare errore a client
+			}
+			else
+			{
+				//TODO: dire al client che ho inserito
+			}
 		}
 		//	UPDATE_OP       = 1,   /// aggiornamento di un oggetto gia' presente
 		case UPDATE_OP: 
 		{
+			if((slot = icl_hash_update_insert(dataTable, (void*) (intptr_t) msg->hdr.key, (void*) (intptr_t) msg->data.len, (void*) (intptr_t) msg->data.buf, (void**) tmp)) == NULL)
+			{
+				//TODO: dire al client che l'elemento non combacia!
+			}
+			else
+			{
+				if(tmp != NULL)
+				{
+					//TODO: dire al client che ho rimpiazzato tmp?
+				}
+				else
+				{
+					//TODO: dire al client che ho inserito da zero
+				}
+			}
 		}
 		//	GET_OP          = 2,   /// recupero di un oggetto dal repository
 		case GET_OP: 
 		{
+			if((slot = icl_hash_find(dataTable, (void*) msg->hdr.key)) == NULL)
+			{
+				//TODO: message not found
+			}
+			else
+			{
+				//TODO: send the data to client
+			}
 		}
 		//	REMOVE_OP       = 3,   /// eliminazione di un oggetto dal repository
 		case REMOVE_OP:
 		{
+			if((icl_hash_delete(dataTable, (void*) msg->hdr.key, *free, *free, *free)) == -1)
+			{
+				//TODO: couldn't find/remove the entry
+			}
+			else
+			{
+				//TODO: send all green
+			}
 		}
 		// 	LOCK_OP         = 4,   /// acquisizione di una lock su tutto il repository
 		case LOCK_OP: 
 		{
+			dataTable->lock = socID;
+			result = 0;
 		}
 		// 	UNLOCK_OP       = 5,   /// rilascio della lock su tutto il repository
 		case UNLOCK_OP: 
 		{
-		}
-		// 	END_OP
-		case END_OP: 
-		{
+			dataTable->lock = -1;
+			result = 0;
 		}
 		// Invalid OP code
 		default: 
@@ -243,13 +297,13 @@ message_t selectorOP(message_t *msg){
 			exit(EXIT_FAILURE);
 		}
 	}
+	statOP(result, msg->hdr.op);
 	return reply;
 }
 
 void printMsg(message_t* msg, int thrd){
 	//printf("==============THREAD#%d==============\nHeader OP: %d\nHeader Key: %d\nData Len: %lu\nData Payload: %s\n", thrd, msg->hdr.op, msg->hdr.key, msg->data.len, msg->data.buf); 
-	printf("msg to thread %d success\n", thrd);
-	printf("success number %d\n", ++count);
+	printf("msg number %d to thread %d success\n", msg->hdr.key, thrd);
 }
 
 int initActivity(int flag){
@@ -258,7 +312,6 @@ int initActivity(int flag){
 	{
 		if((err = pthread_mutex_lock(&actvth)) == 0)
 		{
-			//pthread_cond_init(&actwait, NULL);
 			activethreads+=flag;
 			if(flag == 1)
 			{
@@ -272,9 +325,9 @@ int initActivity(int flag){
 }
 
 void *dealmaker(void* arg){
-	int err, thrdnumber, soktAcc, socID = (int) arg;
+	int err, quit, thrdnumber, soktAcc, socketConfirmation, socID = (intptr_t) arg;
 	listSimple* tmp;
-	message_t* receiver;
+	message_t* receiver, reply;
 	
 	//lock e aggiungo al numero di thread attivi
 	thrdnumber = initActivity(1);
@@ -285,7 +338,6 @@ void *dealmaker(void* arg){
 		errno = ENOMEM;
 		exit(EXIT_FAILURE);
 	}
-	receiver->data.len = 0; //TODO: serve questa?
 	
 	while(1)
 	{
@@ -295,11 +347,10 @@ void *dealmaker(void* arg){
 			err = -1;
 			if((err = pthread_mutex_lock(&coQU)) == 0)
 			{
-				//printf("Thread %d acquired mutex on stOP\n", thrdnumber);
-				//pthread_cond_init(&coQUwait, NULL);
-				while(queueLength <= 0)
+				if(queueLength <= 0)
 				{
-					pthread_cond_wait(&coQUwait, &coQU);
+					pthread_mutex_unlock(&coQU);
+					break;					
 				}
 				soktAcc = head->sokAddr;
 				tmp = head;
@@ -308,7 +359,6 @@ void *dealmaker(void* arg){
 				queueLength--;
 				pthread_mutex_unlock(&coQU);
 				
-				//printf("Thread %d about to check soktAcc (which is %d)\n", thrdnumber, soktAcc);
 				// controllo d'aver preso un socket valido
 				if(soktAcc > 0)
 				{
@@ -318,7 +368,7 @@ void *dealmaker(void* arg){
 					{
 						if((err = pthread_mutex_lock(&stCO)) == 0)
 						{
-							//pthread_cond_init(&stCOwait, NULL);
+							
 							if(statConnections(0) != 0)
 							{
 								printf("%s\n", strerror(errno));
@@ -328,21 +378,50 @@ void *dealmaker(void* arg){
 						}
 					}
 					while(err != 0);
-					// Leggo quello che il client mi scrive
-					if(readHeader(soktAcc, &receiver->hdr)!=0)
-					{
-						errno = EIO;
-						exit(EXIT_FAILURE);
-					}
-					if(readData(soktAcc, &receiver->data)!=0)
-					{
-						errno = EIO;
-						exit(EXIT_FAILURE);
-					}
 					
-					// mando il messaggio a selectorOP che si occupa del resto
-					//selectorOP(receiver);
-					printMsg(receiver, thrdnumber);
+					// mi metto in un loop per leggere il socket aperto da questo client
+					quit = 1;
+					socketConfirmation = soktAcc;
+					while(quit != 0 || soktAcc == socketConfirmation)
+					{
+						// Leggo quello che il client mi scrive
+						if(readHeader(soktAcc, &receiver->hdr)!=0)
+						{
+							errno = EIO;
+							exit(EXIT_FAILURE);
+						}
+						if(readData(soktAcc, &receiver->data)!=0)
+						{
+							errno = EIO;
+							exit(EXIT_FAILURE);
+						}
+						
+						// mando il messaggio a selectorOP che si occupa del resto
+						//TODO: acquire mutex on repository
+						err = -1;
+						do
+						{
+							if((err = pthread_mutex_lock(&dataMUTEX)) == 0)
+							{
+								printMsg(receiver, thrdnumber);
+								/*
+								if((reply = selectorOP(receiver, soktAcc, &quit)) == NULL && quit != 0)
+								{
+									perror("selectorOP fluked\n");
+									exit(EXIT_FAILURE);
+								}
+								else
+								{
+									//TODO: send reply to client
+								}
+								*/
+								pthread_mutex_unlock(&dataMUTEX);
+							}
+						}
+						while(err != 0);
+					}					
+					// elimino eventuale lock della repository creata da questo client
+					if(dataTable->lock == socketConfirmation) dataTable->lock = -1;
 					
 					// chiudo il socket e rimuovo la connessione dalle attive
 					err = -1;
@@ -357,12 +436,15 @@ void *dealmaker(void* arg){
 						}
 					}
 					while(err != 0);
-					// TODO: BREAK se ricevo il segnale dall'utente
 				}
+				//TODO: proper error handling here
 				else
 				{
-					printf("ERRORE LETTURA SOCKET INESISTENTE! Riga 363\n");
-					//exit(EXIT_FAILURE);
+					err = count;
+					err++;
+					printf("Queue socket reading error in thread %d at iteration %d\n", thrdnumber, err);
+					fflush(stdout);
+					exit(EXIT_FAILURE);
 				}
 			}
 		}
@@ -414,7 +496,6 @@ void *dealmaker(void* arg){
 				{
 					if((err = pthread_mutex_lock(&stCO)) == 0)
 					{
-						//pthread_cond_init(&stCOwait, NULL);
 						close(soktAcc);
 						statConnections(1);
 						pthread_mutex_unlock(&stCO);
@@ -462,7 +543,7 @@ int main(int argc, char *argv[]) {
 		maxconnections = threadsinpool;
 	}
     free(config);
-      
+    
     // array dove salvo i pid dei thread
     if((thrds = calloc(threadsinpool, sizeof(pthread_t))) == NULL)
     {
@@ -491,7 +572,7 @@ int main(int argc, char *argv[]) {
     if(remove(socketpath) == 0)printf("Cleaned up old Socket.\nPossible recovery after crash?\n");
     if((socID = startConnection(socketpath)) == -1)
 	{
-		printf("Couldn't create socket.\n");
+		printf("Couldn't create socket. Resource busy.\n");
 		exit(EXIT_FAILURE);
 	}
 	else printf("Socket open.\n");
@@ -499,7 +580,7 @@ int main(int argc, char *argv[]) {
 	// ALLOCATE THREAD POOL
 	for(i = 0; i < threadsinpool; i++)
 	{
-		if((err = pthread_create(&thrds[i], NULL, dealmaker , (void*) socID)) != 0)
+		if((err = pthread_create(&thrds[i], NULL, dealmaker , (void*) (intptr_t) socID)) != 0)
 		{
 			perror("Unable to create client thread!\n");
 			exit(EXIT_FAILURE);
@@ -509,9 +590,10 @@ int main(int argc, char *argv[]) {
 	// accept connections and store them into the shared struct
     while(1)
 	{
-		if(mboxStats.concurrent_connections < maxconnections)
+		if(mboxStats.concurrent_connections >= maxconnections-1) //was <
 		{
-			// mutex for generator
+			// mutex for producer
+			//TODO: solve hanging problem on last element: maybe solved
 			err = -1;
 			if((err = pthread_mutex_lock(&coQU)) == 0){
 				printf("main has the mutex\n");
@@ -532,7 +614,6 @@ int main(int argc, char *argv[]) {
 						pthread_cond_signal(&coQUwait);
 						pthread_mutex_unlock(&coQU);
 					}
-				
 				}
 				else
 				{
@@ -540,11 +621,6 @@ int main(int argc, char *argv[]) {
 					sleep(1);
 				}
 			}
-		}
-		else
-		{
-			sleep(1);
-			// TODO: send error message to client
 		}
 	}
 	

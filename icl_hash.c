@@ -79,6 +79,7 @@ icl_hash_create( int nbuckets, unsigned int (*hash_function)(void*), int (*hash_
     if(!ht) return NULL;
 
     ht->nentries = 0;
+    ht->lock = -1;
     ht->buckets = (icl_entry_t**)malloc(nbuckets * sizeof(icl_entry_t*));
     if(!ht->buckets) return NULL;
 
@@ -103,17 +104,18 @@ icl_hash_create( int nbuckets, unsigned int (*hash_function)(void*), int (*hash_
  */
 
 void *
-icl_hash_find(icl_hash_t *ht, void* key)
+icl_hash_find(icl_hash_t *ht, void* kay)
 {
     icl_entry_t* curr;
     unsigned int hash_val;
-
+	int key = (intptr_t) kay;
+	
     if(!ht || !key) return NULL;
 
-    hash_val = (* ht->hash_function)(key) % ht->nbuckets;
+    hash_val = (* ht->hash_function)(kay) % ht->nbuckets;
 
     for (curr=ht->buckets[hash_val]; curr != NULL; curr=curr->next)
-        if ( ht->hash_key_compare(curr->key, key))
+        if ( ht->hash_key_compare(curr->key, kay))
             return(curr->data);
 
     return NULL;
@@ -130,25 +132,26 @@ icl_hash_find(icl_hash_t *ht, void* key)
  */
 
 icl_entry_t *
-icl_hash_insert(icl_hash_t *ht, void* key, void *data)
+icl_hash_insert(icl_hash_t *ht, void* kay, void *len, void *data)
 {
     icl_entry_t *curr;
     unsigned int hash_val;
-
+	int key = (intptr_t) kay;
     if(!ht || !key) return NULL;
 
-    hash_val = (* ht->hash_function)(key) % ht->nbuckets;
+    hash_val = (* ht->hash_function)(kay) % ht->nbuckets;
 
     for (curr=ht->buckets[hash_val]; curr != NULL; curr=curr->next)
-        if ( ht->hash_key_compare(curr->key, key))
+        if ( ht->hash_key_compare(curr->key, kay))
             return(NULL); /* key already exists */
 
     /* if key was not found */
     curr = (icl_entry_t*)malloc(sizeof(icl_entry_t));
     if(!curr) return NULL;
 
-    curr->key = key;
+    curr->key = kay;
     curr->data = data;
+    curr->len = len;
     curr->next = ht->buckets[hash_val]; /* add at start */
 
     ht->buckets[hash_val] = curr;
@@ -169,7 +172,7 @@ icl_hash_insert(icl_hash_t *ht, void* key, void *data)
  */
 
 icl_entry_t *
-icl_hash_update_insert(icl_hash_t *ht, void* key, void *data, void **olddata)
+icl_hash_update_insert(icl_hash_t *ht, void* key, void *newLen, void *data, void **olddata)
 {
     icl_entry_t *curr, *prev;
     unsigned int hash_val;
@@ -183,8 +186,16 @@ icl_hash_update_insert(icl_hash_t *ht, void* key, void *data, void **olddata)
         /* If key found, remove node from list, free old key, and setup olddata for the return */
         if ( ht->hash_key_compare(curr->key, key)) {
             if (olddata != NULL) {
-                *olddata = curr->data;
-                free(curr->key);
+				//TODO: MODIFY ALL FUNCTIONS TO TAKE len INTO ACCOUNT
+				if(curr->len == newLen)
+				{
+					*olddata = curr->data;
+					free(curr->key);
+				}
+				else
+				{
+					return NULL;
+				}
             }
 
             if (prev == NULL)
@@ -220,7 +231,7 @@ icl_hash_update_insert(icl_hash_t *ht, void* key, void *data, void **olddata)
  *
  * @returns 0 on success, -1 on failure.
  */
-int icl_hash_delete(icl_hash_t *ht, void* key, void (*free_key)(void*), void (*free_data)(void*))
+int icl_hash_delete(icl_hash_t *ht, void* key, void (*free_key)(void*), void (*free_len)(void*), void (*free_data)(void*))
 {
     icl_entry_t *curr, *prev;
     unsigned int hash_val;
@@ -237,6 +248,7 @@ int icl_hash_delete(icl_hash_t *ht, void* key, void (*free_key)(void*), void (*f
                 prev->next = curr->next;
             }
             if (*free_key && curr->key) (*free_key)(curr->key);
+            if (*free_len && curr->len) (*free_len)(curr->len);
             if (*free_data && curr->data) (*free_data)(curr->data);
             ht->nentries++;
             free(curr);
