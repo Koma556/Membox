@@ -326,6 +326,7 @@ int initActivity(int flag){
 
 void *dealmaker(void* arg){
 	int err, quit, thrdnumber, soktAcc, socketConfirmation, socID = (intptr_t) arg;
+	int err1, err2, err3;
 	listSimple* tmp;
 	message_t* receiver, reply;
 	
@@ -344,109 +345,120 @@ void *dealmaker(void* arg){
 		// apro la variabile condivisa e leggo la sua length
 		if(queueLength > 0)
 		{
-			err = -1;
-			if((err = pthread_mutex_lock(&coQU)) == 0)
-			{
-				if(queueLength <= 0)
+			// cerco di acquisire il lock sulla coda
+			do
+			{	
+				err1 = -1;
+				if((err1 = pthread_mutex_lock(&coQU)) == 0)
 				{
-					pthread_mutex_unlock(&coQU);
-					break;					
-				}
-				soktAcc = head->sokAddr;
-				tmp = head;
-				head = head->next;
-				free(tmp);
-				queueLength--;
-				pthread_mutex_unlock(&coQU);
-				
-				// controllo d'aver preso un socket valido
-				if(soktAcc > 0)
-				{
-					// appena accetto una connessione faccio la mutex per aggiornare mboxStats
-					err = -1;
-					do
+					// se nel mentre la coda si è svuotata interrompo il loop
+					// ricordandomi di rilasciare la mutex sulla coda
+					if(queueLength <= 0)
 					{
-						if((err = pthread_mutex_lock(&stCO)) == 0)
+						pthread_mutex_unlock(&coQU);
+						break;					
+					}
+					
+					// altrimenti opero sulla testa della coda
+					soktAcc = head->sokAddr;
+					tmp = head;
+					head = head->next;
+					free(tmp);
+					queueLength--;
+					
+					//rilascio la mutex sulla coda
+					pthread_mutex_unlock(&coQU);
+					
+					// controllo d'aver preso un socket valido
+					if(soktAcc > 0)
+					{
+						// appena accetto una connessione faccio la mutex per aggiornare mboxStats
+						err2 = -1;
+						do
 						{
-							
-							if(statConnections(0) != 0)
+							if((err2 = pthread_mutex_lock(&stCO)) == 0)
 							{
-								printf("%s\n", strerror(errno));
+								
+								if(statConnections(0) != 0)
+								{
+									printf("%s\n", strerror(errno));
+									exit(EXIT_FAILURE);
+								}
+								pthread_mutex_unlock(&stCO);
+							}
+						}
+						while(err2 != 0);
+						
+						// mi metto in un loop per leggere il socket aperto da questo client
+						quit = 1;
+						socketConfirmation = soktAcc;
+						while(quit != 0 || soktAcc == socketConfirmation)
+						{
+							// Leggo quello che il client mi scrive
+							if(readHeader(soktAcc, &receiver->hdr)!=0)
+							{
+								errno = EIO;
 								exit(EXIT_FAILURE);
 							}
-							pthread_mutex_unlock(&stCO);
-						}
-					}
-					while(err != 0);
-					
-					// mi metto in un loop per leggere il socket aperto da questo client
-					quit = 1;
-					socketConfirmation = soktAcc;
-					while(quit != 0 || soktAcc == socketConfirmation)
-					{
-						// Leggo quello che il client mi scrive
-						if(readHeader(soktAcc, &receiver->hdr)!=0)
-						{
-							errno = EIO;
-							exit(EXIT_FAILURE);
-						}
-						if(readData(soktAcc, &receiver->data)!=0)
-						{
-							errno = EIO;
-							exit(EXIT_FAILURE);
-						}
+							if(readData(soktAcc, &receiver->data)!=0)
+							{
+								errno = EIO;
+								exit(EXIT_FAILURE);
+							}
+							
+							// mando il messaggio a selectorOP che si occupa del resto
+							//TODO: acquire mutex on repository
+							err3 = -1;
+							do
+							{
+								if((err3 = pthread_mutex_lock(&dataMUTEX)) == 0)
+								{
+									printMsg(receiver, thrdnumber);
+									/*
+									if((reply = selectorOP(receiver, soktAcc, &quit)) == NULL && quit != 0)
+									{
+										perror("selectorOP fluked\n");
+										exit(EXIT_FAILURE);
+									}
+									else
+									{
+										//TODO: send reply to client
+									}
+									*/
+									pthread_mutex_unlock(&dataMUTEX);
+								}
+							}
+							while(err3 != 0);
+						}					
+						// elimino eventuale lock della repository creata da questo client
+						if(dataTable->lock == socketConfirmation) dataTable->lock = -1;
 						
-						// mando il messaggio a selectorOP che si occupa del resto
-						//TODO: acquire mutex on repository
+						// chiudo il socket e rimuovo la connessione dalle attive
 						err = -1;
 						do
 						{
-							if((err = pthread_mutex_lock(&dataMUTEX)) == 0)
+							if((err = pthread_mutex_lock(&stCO)) == 0)
 							{
-								printMsg(receiver, thrdnumber);
-								/*
-								if((reply = selectorOP(receiver, soktAcc, &quit)) == NULL && quit != 0)
-								{
-									perror("selectorOP fluked\n");
-									exit(EXIT_FAILURE);
-								}
-								else
-								{
-									//TODO: send reply to client
-								}
-								*/
-								pthread_mutex_unlock(&dataMUTEX);
+								//pthread_cond_init(&stCOwait, NULL);
+								close(soktAcc);
+								statConnections(1);
+								pthread_mutex_unlock(&stCO);
 							}
 						}
 						while(err != 0);
-					}					
-					// elimino eventuale lock della repository creata da questo client
-					if(dataTable->lock == socketConfirmation) dataTable->lock = -1;
-					
-					// chiudo il socket e rimuovo la connessione dalle attive
-					err = -1;
-					do
-					{
-						if((err = pthread_mutex_lock(&stCO)) == 0)
-						{
-							//pthread_cond_init(&stCOwait, NULL);
-							close(soktAcc);
-							statConnections(1);
-							pthread_mutex_unlock(&stCO);
-						}
 					}
-					while(err != 0);
-				}
-				//TODO: proper error handling here
-				else
-				{
-					err = count;
-					err++;
-					printf("Queue socket reading error in thread %d at iteration %d\n", thrdnumber, err);
-					fflush(stdout);
-					exit(EXIT_FAILURE);
+					//TODO: proper error handling here
+					else
+					{
+						err = count;
+						err++;
+						printf("Queue socket reading error in thread %d at iteration %d\n", thrdnumber, err);
+						fflush(stdout);
+						exit(EXIT_FAILURE);
+					}
 				}
 			}
+			while(err1 != 0);
 		}
 		else
 		{
