@@ -272,7 +272,7 @@ int initActivity(int flag){
 }
 
 void *dealmaker(void* arg){
-	int err, thrdnumber, soktAcc;
+	int err, thrdnumber, soktAcc, socID = (int) arg;
 	listSimple* tmp;
 	message_t* receiver;
 	
@@ -289,7 +289,7 @@ void *dealmaker(void* arg){
 	
 	while(1)
 	{
-		// apro la struttura condivisa e leggo head
+		// apro la variabile condivisa e leggo la sua length
 		if(queueLength > 0)
 		{
 			err = -1;
@@ -312,60 +312,118 @@ void *dealmaker(void* arg){
 				// controllo d'aver preso un socket valido
 				if(soktAcc > 0)
 				{
-						// appena accetto una connessione faccio la mutex per aggiornare mboxStats
-						err = -1;
-						do
+					// appena accetto una connessione faccio la mutex per aggiornare mboxStats
+					err = -1;
+					do
+					{
+						if((err = pthread_mutex_lock(&stCO)) == 0)
 						{
-							if((err = pthread_mutex_lock(&stCO)) == 0)
+							//pthread_cond_init(&stCOwait, NULL);
+							if(statConnections(0) != 0)
 							{
-								//pthread_cond_init(&stCOwait, NULL);
-								if(statConnections(0) != 0)
-								{
-									printf("%s\n", strerror(errno));
-									exit(EXIT_FAILURE);
-								}
-								pthread_mutex_unlock(&stCO);
+								printf("%s\n", strerror(errno));
+								exit(EXIT_FAILURE);
 							}
+							pthread_mutex_unlock(&stCO);
 						}
-						while(err != 0);
-						// Leggo quello che il client mi scrive
-						if(readHeader(soktAcc, &receiver->hdr)!=0)
-						{
-							errno = EIO;
-							exit(EXIT_FAILURE);
-						}
-						if(readData(soktAcc, &receiver->data)!=0)
-						{
-							errno = EIO;
-							exit(EXIT_FAILURE);
-						}
-						
-						// mando il messaggio a selectorOP che si occupa del resto
-						//selectorOP(receiver);
-						printMsg(receiver, thrdnumber);
-						
-						// chiudo il socket e rimuovo la connessione dalle attive
-						err = -1;
-						do
-						{
-							if((err = pthread_mutex_lock(&stCO)) == 0)
-							{
-								//pthread_cond_init(&stCOwait, NULL);
-								close(soktAcc);
-								statConnections(1);
-								pthread_mutex_unlock(&stCO);
-							}
-						}
-						while(err != 0);
-						// TODO: BREAK se ricevo il segnale dall'utente
 					}
+					while(err != 0);
+					// Leggo quello che il client mi scrive
+					if(readHeader(soktAcc, &receiver->hdr)!=0)
+					{
+						errno = EIO;
+						exit(EXIT_FAILURE);
+					}
+					if(readData(soktAcc, &receiver->data)!=0)
+					{
+						errno = EIO;
+						exit(EXIT_FAILURE);
+					}
+					
+					// mando il messaggio a selectorOP che si occupa del resto
+					//selectorOP(receiver);
+					printMsg(receiver, thrdnumber);
+					
+					// chiudo il socket e rimuovo la connessione dalle attive
+					err = -1;
+					do
+					{
+						if((err = pthread_mutex_lock(&stCO)) == 0)
+						{
+							//pthread_cond_init(&stCOwait, NULL);
+							close(soktAcc);
+							statConnections(1);
+							pthread_mutex_unlock(&stCO);
+						}
+					}
+					while(err != 0);
+					// TODO: BREAK se ricevo il segnale dall'utente
+				}
 				else
 				{
 					printf("ERRORE LETTURA SOCKET INESISTENTE! Riga 363\n");
 					//exit(EXIT_FAILURE);
 				}
 			}
-		}else sleep(1);
+		}
+		else
+		{
+			// se la coda è vuota si occupa lui d'ascoltare
+			if((soktAcc = accept(socID, NULL, 0)) == -1)
+			{
+				errno = EIO;
+				exit(EXIT_FAILURE);
+			}
+			else
+			{
+				// appena accetto una connessione faccio la mutex per aggiornare mboxStats
+				err = -1;
+				do
+				{
+					if((err = pthread_mutex_lock(&stCO)) == 0)
+					{
+						//pthread_cond_init(&stCOwait, NULL);
+						if(statConnections(0) != 0)
+						{
+							printf("%s\n", strerror(errno));
+							exit(EXIT_FAILURE);
+						}
+						pthread_mutex_unlock(&stCO);
+					}
+				}
+				while(err != 0);
+				// Leggo quello che il client mi scrive
+				if(readHeader(soktAcc, &receiver->hdr)!=0)
+				{
+					errno = EIO;
+					exit(EXIT_FAILURE);
+				}
+				if(readData(soktAcc, &receiver->data)!=0)
+				{
+					errno = EIO;
+					exit(EXIT_FAILURE);
+				}
+				
+				// mando il messaggio a selectorOP che si occupa del resto
+				//selectorOP(receiver);
+				printMsg(receiver, thrdnumber);
+				
+				// chiudo il socket e rimuovo la connessione dalle attive
+				err = -1;
+				do
+				{
+					if((err = pthread_mutex_lock(&stCO)) == 0)
+					{
+						//pthread_cond_init(&stCOwait, NULL);
+						close(soktAcc);
+						statConnections(1);
+						pthread_mutex_unlock(&stCO);
+					}
+				}
+				while(err != 0);
+				// TODO: BREAK se ricevo il segnale dall'utente
+			}
+		}
 	}
 	initActivity(-1);
 	pthread_exit(NULL);
