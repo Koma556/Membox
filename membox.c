@@ -326,7 +326,7 @@ int initActivity(int flag){
 
 void *dealmaker(void* arg){
 	int err, quit, thrdnumber, soktAcc, socketConfirmation, socID = (intptr_t) arg;
-	int err1, err2, err3;
+	int err1, err2, err3, check = 0;
 	listSimple* tmp;
 	message_t* receiver, reply;
 	
@@ -390,20 +390,17 @@ void *dealmaker(void* arg){
 						while(err2 != 0);
 						
 						// mi metto in un loop per leggere il socket aperto da questo client
-						quit = 1;
-						socketConfirmation = soktAcc;
-						while(quit != 0 || soktAcc == socketConfirmation)
+						quit = 0;
+						while(quit != 1)
 						{
 							// Leggo quello che il client mi scrive
 							if(readHeader(soktAcc, &receiver->hdr)!=0)
 							{
-								errno = EIO;
-								exit(EXIT_FAILURE);
+								quit = 1;
 							}
 							if(readData(soktAcc, &receiver->data)!=0)
 							{
-								errno = EIO;
-								exit(EXIT_FAILURE);
+								quit = 1;
 							}
 							
 							// mando il messaggio a selectorOP che si occupa del resto
@@ -431,7 +428,7 @@ void *dealmaker(void* arg){
 							while(err3 != 0);
 						}					
 						// elimino eventuale lock della repository creata da questo client
-						if(dataTable->lock == socketConfirmation) dataTable->lock = -1;
+						if(dataTable->lock == soktAcc) dataTable->lock = -1;
 						
 						// chiudo il socket e rimuovo la connessione dalle attive
 						err = -1;
@@ -479,28 +476,57 @@ void *dealmaker(void* arg){
 						//pthread_cond_init(&stCOwait, NULL);
 						if(statConnections(0) != 0)
 						{
-							printf("%s\n", strerror(errno));
+							printf("%s\n", strerror(errno))	;
 							exit(EXIT_FAILURE);
 						}
+						printf("Completed statConnections+ thread %d\n", thrdnumber);
+						fflush(stdout);
 						pthread_mutex_unlock(&stCO);
 					}
 				}
 				while(err != 0);
-				// Leggo quello che il client mi scrive
-				if(readHeader(soktAcc, &receiver->hdr)!=0)
+				check = 0;
+				while(check == 0)
 				{
-					errno = EIO;
-					exit(EXIT_FAILURE);
-				}
-				if(readData(soktAcc, &receiver->data)!=0)
-				{
-					errno = EIO;
-					exit(EXIT_FAILURE);
+					// Leggo quello che il client mi scrive
+					
+					//TODO: NON FALLISCE MAI E MANDA TUTTO IN LOOP
+					if(readHeader(soktAcc, &receiver->hdr)!=0)
+					{
+						check = 1;
+					}
+					if(readData(soktAcc, &receiver->data)!=0)
+					{
+						check = 1;
+					}
+					
+					// mando il messaggio a selectorOP che si occupa del resto
+					//selectorOP(receiver);
+					err3 = -1;
+					do
+					{
+						if((err3 = pthread_mutex_lock(&dataMUTEX)) == 0)
+						{
+							printMsg(receiver, thrdnumber);
+							/*
+							if((reply = selectorOP(receiver, soktAcc, &quit)) == NULL && quit != 0)
+							{
+								perror("selectorOP fluked\n");
+								exit(EXIT_FAILURE);
+							}
+							else
+							{
+								//TODO: send reply to client
+							}
+							*/
+							pthread_mutex_unlock(&dataMUTEX);
+						}
+					}
+					while(err3 != 0);
 				}
 				
-				// mando il messaggio a selectorOP che si occupa del resto
-				//selectorOP(receiver);
-				printMsg(receiver, thrdnumber);
+				// elimino eventuale lock della repository creata da questo client
+				if(dataTable->lock == soktAcc) dataTable->lock = -1;
 				
 				// chiudo il socket e rimuovo la connessione dalle attive
 				err = -1;
@@ -510,6 +536,9 @@ void *dealmaker(void* arg){
 					{
 						close(soktAcc);
 						statConnections(1);
+						//TODO: remove this print and flush
+						printf("Completed statConnections- thread %d\n", thrdnumber);
+						fflush(stdout);
 						pthread_mutex_unlock(&stCO);
 					}
 				}
@@ -609,7 +638,7 @@ int main(int argc, char *argv[]) {
 			err = -1;
 			if((err = pthread_mutex_lock(&coQU)) == 0){
 				printf("main has the mutex\n");
-				if(maxconnections > queueLength)
+				if(maxconnections > queueLength + threadsinpool)
 				{
 					if((connectionQueue->sokAddr = accept(socID, NULL, 0)) == -1)
 					{

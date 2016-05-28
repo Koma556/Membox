@@ -125,7 +125,7 @@ int readHeader(long fd, message_hdr_t *hdr){
 	
 	//leggo l'intera connessione
 	ck = read(fd, storage, sizeof(op_t)+sizeof(membox_key_t));
-	if(ck < 0){	
+	if(ck <= 0){	
 		free(storage);
 		return -1;
 	}
@@ -149,22 +149,24 @@ int readHeader(long fd, message_hdr_t *hdr){
  */
 int readData(long fd, message_data_t *data){
 	int ck = 0;
+	unsigned int *length;
 	char *storage;
 	
 	//leggo dimensione di data
+	/*
 	if((storage = (char*)malloc(sizeof(unsigned int))) == NULL){
 		errno = ENOMEM; 
 		return -1;
-	}
-	ck = read(fd, storage, sizeof(unsigned int));
-	if(ck < 0)
+	}*/
+	ck = read(fd, length, sizeof(unsigned int));
+	if(ck <= 0)
 	{	
-		printf("%s\n", strerror(errno));
+		//free(storage);
 		return -1;
 	}
 		
 	//salvo dimensione di data
-	memcpy(&data->len, storage, sizeof(unsigned int));
+	memcpy(&data->len, length, sizeof(unsigned int));
 	free(storage);
 	
 	//alloco storage per ospitare data
