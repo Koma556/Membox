@@ -118,14 +118,16 @@ int readHeader(long fd, message_hdr_t *hdr){
 	char *storage;
 	
 	//alloco storage per ospitare sia op che chiave
-	if((storage = (char*)malloc(sizeof(op_t)+sizeof(membox_key_t))) == NULL){
+	if((storage = (char*)malloc(sizeof(op_t)+sizeof(membox_key_t))) == NULL)
+	{
 		errno = ENOMEM; 
 		return -1;
 	}
 	
 	//leggo l'intera connessione
 	ck = read(fd, storage, sizeof(op_t)+sizeof(membox_key_t));
-	if(ck <= 0){	
+	if(ck <= 0)
+	{	
 		free(storage);
 		return -1;
 	}
@@ -149,7 +151,7 @@ int readHeader(long fd, message_hdr_t *hdr){
  */
 int readData(long fd, message_data_t *data){
 	int ck = 0;
-	unsigned int *length;
+	unsigned int length;
 	char *storage;
 	
 	//leggo dimensione di data
@@ -158,7 +160,7 @@ int readData(long fd, message_data_t *data){
 		errno = ENOMEM; 
 		return -1;
 	}*/
-	ck = read(fd, length, sizeof(unsigned int));
+	ck = read(fd, &length, sizeof(unsigned int));
 	if(ck <= 0)
 	{	
 		//free(storage);
@@ -166,17 +168,22 @@ int readData(long fd, message_data_t *data){
 	}
 		
 	//salvo dimensione di data
-	memcpy(&data->len, length, sizeof(unsigned int));
-	free(storage);
+	memcpy(&data->len, &length, sizeof(unsigned int));
 	
 	//alloco storage per ospitare data
-	if((storage = (char*)malloc(sizeof(char)*(data->len))) == NULL){
+	if((storage = (char*)malloc(sizeof(char)*(data->len))) == NULL)
+	{
 		errno = ENOMEM; 
 		return -1;
 	}
 	
 	//leggo data dal socket 
-	ck = read(fd, storage, (sizeof(char)*data->len));
+	ck = 0;
+	do
+	{
+		ck = read(fd, storage+(sizeof(char)*ck), (sizeof(char)*length));
+		length =- ck;
+	}while(ck > 0 && ck != length);
 	if(ck < 0){	
 		free(storage);
 		return -1;
@@ -246,7 +253,11 @@ int sendRequest(long fd, message_t *msg){
  *
  * @return 0 in caso di successo -1 in caso di errore
  */
-int readReply(long fd, message_t *msg);
+int readReply(long fd, message_t *msg){
+		if(readHeader(fd, &msg->hdr) || readData(fd, &msg->data) != 0)
+			return -1;
+		return 0;
+}
 
 #endif /* CONNECTIONS_H_ */
 /*int main()
