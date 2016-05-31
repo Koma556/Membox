@@ -201,7 +201,7 @@ int* readConfig(FILE* fd){
  * 
  * @param msg	puntatore al messaggio gia' spacchettato 
  */
- 
+ //TODO: salvare la struttura data, non il buffer di data
 message_t* selectorOP(message_t *msg, int socID, int* quit){
 	message_t* reply;
 	icl_entry_t* slot;
@@ -337,8 +337,8 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 }
 
 void printMsg(message_t* msg, int thrd){
-	printf("==============THREAD#%d==============\nHeader OP: %d\nHeader Key: %d\nData Len: %lu\nData Payload: %s\n", thrd, msg->hdr.op, msg->hdr.key, msg->data.len, msg->data.buf); 
-	//printf("msg number %d to thread %d success\n", msg->hdr.key, thrd);
+	//printf("==============THREAD#%d==============\nHeader OP: %d\nHeader Key: %li\nData Len: %u\nData Payload: %s\n", thrd, msg->hdr.op, msg->hdr.key, msg->data.len, msg->data.buf); 
+	printf("msg number %li to thread %d success\n", msg->hdr.key, thrd);
 	fflush(stdout);
 }
 
@@ -397,17 +397,16 @@ void *dealmaker(void* arg){
 				{
 					pthread_cond_wait(&coQUwait, &coQU);
 				}
-				// altrimenti opero sulla testa della coda
 				
-				fflush(stdout);
+				// altrimenti opero sulla testa della coda
 				assert(queueLength != 0);
 				soktAcc = head->sokAddr;
-				printf("Starting work on socID %d inside thread %d\n", soktAcc, thrdnumber);
 				assert(soktAcc != -1);
 				tmp = head;
 				head = head->next;
 				free(tmp);
 				queueLength--;
+				
 				//rilascio la mutex sulla coda
 				pthread_mutex_unlock(&coQU);
 			}
@@ -624,7 +623,7 @@ void *dealmaker(void* arg){
 }
 
 void* dispatcher(void* args){
-	int socID = (intptr_t) args;
+	int socID = (intptr_t) args, err3;
 	int err = 1;
 	while(1)
 	{
@@ -634,20 +633,24 @@ void* dispatcher(void* args){
 			fflush(stdout);
 			if(queueLength + mboxStats.concurrent_connections < maxconnections)
 			{
-				if((connectionQueue->sokAddr = accept(socID, NULL, 0)) == -1)
-				{
-					pthread_mutex_unlock(&coQU);
-					exit(EXIT_FAILURE);
-				}
-				else
+				pthread_mutex_unlock(&coQU);
+				if((connectionQueue->sokAddr = accept(socID, NULL, 0)) != -1)
 				{	
-					connectionQueue->next = (listSimple*)malloc(sizeof(listSimple));
-					queueLength++;
-					connectionQueue = connectionQueue->next;
-					connectionQueue->sokAddr = -1;
-					connectionQueue->next = NULL;
-					pthread_cond_signal(&coQUwait);
-					pthread_mutex_unlock(&coQU);
+					err3 = -1;
+					do
+					{
+						if((err3 = pthread_mutex_lock(&coQU)) == 0)
+						{
+							connectionQueue->next = (listSimple*)malloc(sizeof(listSimple));
+							queueLength++;
+							connectionQueue = connectionQueue->next;
+							connectionQueue->sokAddr = -1;
+							connectionQueue->next = NULL;
+							pthread_cond_signal(&coQUwait);
+							pthread_mutex_unlock(&coQU);
+						}
+					}
+					while(err3 != 0);
 				}
 			}
 			else
