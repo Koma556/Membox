@@ -11,7 +11,9 @@ static inline unsigned int fnv_hash_function( void *key, int len ) {
     unsigned int h = 2166136261u;
     int i;
     for ( i = 0; i < len; i++ )
+    {
         h = ( h * 16777619 ) ^ p[i];
+    }
     return h;
 }
 static inline unsigned int ulong_hash_function( void *key ) {

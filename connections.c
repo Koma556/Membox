@@ -178,13 +178,9 @@ int readData(long fd, message_data_t *data){
 	}
 	
 	//leggo data dal socket 
-	ck = 0;
-	do
-	{
-		ck = read(fd, storage+(sizeof(char)*ck), (sizeof(char)*length));
-		length =- ck;
-	}while(ck > 0 && ck != length);
-	if(ck < 0){	
+	ck = read(fd, storage+(sizeof(char)*ck), (sizeof(char)*length));
+	if(ck < 0)
+	{	
 		free(storage);
 		return -1;
 	}

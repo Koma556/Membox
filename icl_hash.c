@@ -132,24 +132,23 @@ icl_hash_find(icl_hash_t *ht, void* kay)
  */
 
 icl_entry_t *
-icl_hash_insert(icl_hash_t *ht, void* kay, void *len, void *data)
+icl_hash_insert(icl_hash_t *ht, void* key, void *len, void *data)
 {
     icl_entry_t *curr;
     unsigned int hash_val;
-	int key = (intptr_t) kay;
     if(!ht || !key) return NULL;
-
-    hash_val = (* ht->hash_function)(kay) % ht->nbuckets;
-
+	
+    hash_val = (* ht->hash_function)(key) % ht->nbuckets;
+	
     for (curr=ht->buckets[hash_val]; curr != NULL; curr=curr->next)
-        if ( ht->hash_key_compare(curr->key, kay))
+        if ( ht->hash_key_compare(curr->key, key))
             return(NULL); /* key already exists */
 
     /* if key was not found */
     curr = (icl_entry_t*)malloc(sizeof(icl_entry_t));
     if(!curr) return NULL;
 
-    curr->key = kay;
+    curr->key = key;
     curr->data = data;
     curr->len = len;
     curr->next = ht->buckets[hash_val]; /* add at start */

@@ -1,10 +1,7 @@
-#ignora = /fail
 Sock path = /tmp/mbox_socket
-#cass
 maxconnections = 40
 threadsinpool = 30
-= 3
-=4
-#tup 
-tup = 5
-po = /end
+storagebyte = 0
+storagebytesize = 0
+maxobjsize = 0
+logfile = /tmp/log

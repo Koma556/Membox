@@ -43,6 +43,7 @@ typedef struct listS{
 
 static char *socketpath, *statfilepath;
 static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize, activethreads = 0, queueLength = 0, count = 0;
+static FILE* descriptr;
 // Struttura dati condivisa
 static icl_hash_t* dataTable;
 static listSimple* connectionQueue, *head;
@@ -61,59 +62,68 @@ static pthread_mutex_t dataMUTEX = PTHREAD_MUTEX_INITIALIZER;
  */
 struct statistics  mboxStats = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
+void getMutex(pthread_mutex_t mutex){
+	int err = -1;
+	while((err = pthread_mutex_lock(&mutex)) == 0)
+		pthread_mutex_unlock(&mutex);
+}
+
 /**
  * @function statOP
  * @brief increases the mboxStats values tied to the operations
  * 
  * @param opResult	the integer resulting from an OP function
  * @param op 		the operation which we need to stat
- */
-int statOP(op_t opResult, op_t op){
-	int err = -1;
-	do
+ */ //TODO: inplement mutex
+int statOP(int opResult, op_t op){
+	if(opResult == 0)
 	{
-		if((err = pthread_mutex_lock(&stOP)) != 0)
-		{
-			if(opResult == OP_OK)
+		switch(op)
+		{		
+			case PUT_OP:
 			{
-				switch(op)
-				{
-					case PUT_OP: mboxStats.nget++;
-					case UPDATE_OP: mboxStats.nupdate++;
-					case LOCK_OP: mboxStats.nlock++;
-					case GET_OP: mboxStats.nget++;
-					case REMOVE_OP: mboxStats.nremove++;
-					
-					default:
-					{
-						pthread_mutex_unlock(&stOP);
-						return -1;
-					}
-				}
-				pthread_mutex_unlock(&stOP);
+				mboxStats.nget++;
 			}
-			else
+			break;
+			case UPDATE_OP: mboxStats.nupdate++;
+			break;
+			case LOCK_OP: mboxStats.nlock++;
+			break;
+			case GET_OP: mboxStats.nget++;
+			break;
+			case REMOVE_OP: mboxStats.nremove++;
+			break;
+			
+			default:
 			{
-				switch(op)
-				{
-					case PUT_OP: mboxStats.nget_failed++;
-					case UPDATE_OP: mboxStats.nupdate_failed++;
-					case LOCK_OP: mboxStats.nlock_failed++;
-					case GET_OP: mboxStats.nget_failed++;
-					case REMOVE_OP: mboxStats.nremove_failed++;
-					default:
-					{
-						pthread_mutex_unlock(&stOP);
-						return -1;
-					}
-				}
 				pthread_mutex_unlock(&stOP);
+				return -1;
 			}
 		}
-		else
-			pthread_mutex_unlock(&stOP);
+		pthread_mutex_unlock(&stOP);
 	}
-	while(err != 0);
+	else
+	{
+		switch(op)
+		{
+			case PUT_OP: mboxStats.nget_failed++;
+			break;
+			case UPDATE_OP: mboxStats.nupdate_failed++;
+			break;
+			case LOCK_OP: mboxStats.nlock_failed++;
+			break;
+			case GET_OP: mboxStats.nget_failed++;
+			break;
+			case REMOVE_OP: mboxStats.nremove_failed++;
+			break;
+			default:
+			{
+				pthread_mutex_unlock(&stOP);
+				return -1;
+			}
+		}
+		pthread_mutex_unlock(&stOP);
+	}
 	
 	return 0;
 }
@@ -223,20 +233,18 @@ int* readConfig(FILE* fd){
  * 
  * @param msg	puntatore al messaggio gia' spacchettato 
  */
- //TODO: salvare la struttura data, non il buffer di data
 message_t* selectorOP(message_t *msg, int socID, int* quit){
 	message_t* reply;
 	icl_entry_t* slot;
 	char* tmp = NULL;
-	int result = 1; //TODO: set result = 0 if op success, 1 if failure
+	int result = 1;
 	
-	//TODO: allocare reply
 	reply = (message_t*)malloc(sizeof(message_t));
 	reply->hdr.key = msg->hdr.key;
 	reply->data.len = msg->data.len;
 	reply->data.buf = msg->data.buf;
 	
-	if(dataTable->lock != socID || dataTable->lock != -1)
+	if(dataTable->lock != socID && dataTable->lock != -1)
 	{
 		reply->hdr.op = OP_LOCKED;
 		result = 1;
@@ -248,20 +256,20 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 			//	PUT_OP          = 0,   /// inserimento di un oggetto nel repository
 			case PUT_OP:
 			{
-				if(msg->data.len > maxobjsize)
-				{
+				if(msg->data.len > maxobjsize && maxobjsize != 0)
+				{					
 					reply->hdr.op = OP_PUT_SIZE;
 					result = 1;
 				}
-				else if((msg->data.len + mboxStats.current_size > storagebyte) != 0){
+				else if(msg->data.len + mboxStats.current_size > storagebyte && storagebyte != 0){
 					reply->hdr.op = OP_PUT_REPOSIZE;
 					result = 1;
 				}
-				else if((mboxStats.current_objects == storagesize && storagesize) != 0){
+				else if(mboxStats.current_objects == storagesize && storagesize != 0){
 					reply->hdr.op = OP_PUT_TOOMANY;
 					result = 1;
 				}
-				else if((icl_hash_insert(dataTable, (void*) (intptr_t) msg->hdr.key, (void*) (intptr_t) msg->data.len, (void*) (intptr_t) msg->data.buf)) == NULL)
+				else if((icl_hash_insert(dataTable, &msg->hdr.key, &msg->data.len, &msg->data.buf)) == NULL)
 				{
 					reply->hdr.op = OP_FAIL;
 					result = 1;
@@ -272,6 +280,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					result = 0;
 				}
 			}
+			break;
 			//	UPDATE_OP       = 1,   /// aggiornamento di un oggetto gia' presente
 			case UPDATE_OP: 
 			{
@@ -294,6 +303,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					}
 				}
 			}
+			break;
 			//	GET_OP          = 2,   /// recupero di un oggetto dal repository
 			case GET_OP: 
 			{
@@ -310,6 +320,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					result = 0;
 				}
 			}
+			break;
 			//	REMOVE_OP       = 3,   /// eliminazione di un oggetto dal repository
 			case REMOVE_OP:
 			{
@@ -325,6 +336,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 				}
 			}
 			// 	LOCK_OP         = 4,   /// acquisizione di una lock su tutto il repository
+			break;
 			case LOCK_OP: 
 			{
 				dataTable->lock = socID;
@@ -332,6 +344,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 				result = 0;
 			}
 			// 	UNLOCK_OP       = 5,   /// rilascio della lock su tutto il repository
+			break;
 			case UNLOCK_OP: 
 			{
 				if(dataTable->lock != -1)
@@ -347,6 +360,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 				}
 			}
 			// Invalid OP code
+			break;
 			default: 
 			{
 				perror("OP not recognized.\n");
@@ -476,19 +490,18 @@ void *dealmaker(void* arg){
 					{
 						if((err3 = pthread_mutex_lock(&dataMUTEX)) == 0)
 						{
-							printMsg(receiver, thrdnumber);
-							
 							if((reply = selectorOP(receiver, soktAcc, &quit)) == NULL && quit != 0)
 							{
+								pthread_mutex_unlock(&dataMUTEX);
 								perror("selectorOP fluked\n");
 								exit(EXIT_FAILURE);
 							}
 							else
 							{
+								pthread_mutex_unlock(&dataMUTEX);
 								sendRequest(socID, reply);
 							}
-							
-							pthread_mutex_unlock(&dataMUTEX);
+							printMsg(receiver, thrdnumber);
 							sleep(1);
 						}
 					}
@@ -528,7 +541,7 @@ void *dealmaker(void* arg){
 
 void* dispatcher(void* args){
 	int socID = (intptr_t) args, err3;
-	int err = 1;
+	int err = -1, err2 = -1;
 	while(1)
 	{
 		if((err = pthread_mutex_lock(&coQU)) == 0)
@@ -552,6 +565,14 @@ void* dispatcher(void* args){
 							connectionQueue->next = NULL;
 							pthread_cond_signal(&coQUwait);
 							pthread_mutex_unlock(&coQU);
+							// debug code to print on the log file
+							do
+							{
+								if((err2 = pthread_mutex_lock(&stOP)) == 0)
+									printStats(descriptr);
+								pthread_mutex_unlock(&stOP);
+							}
+							while(err2 != 0);
 						}
 					}
 					while(err3 != 0);
@@ -615,11 +636,15 @@ int main(int argc, char *argv[]) {
 	head = connectionQueue;
 	
     // alloco la struttura dati d'hash condivisa
-    if((dataTable = icl_hash_create(maxconnections*10, ulong_hash_function, ulong_key_compare)) == NULL)
+    if((dataTable = icl_hash_create(maxconnections, &ulong_hash_function, &ulong_key_compare)) == NULL)
     {
 		errno = ENOMEM;
 		return -1;
 	}
+	printf("%d\n", dataTable->lock);
+    
+    // apro il file di log
+    descriptr = fopen(statfilepath, "w+");
         
     // creo il socket
     if(remove(socketpath) == 0)printf("Cleaned up old Socket.\nPossible recovery after crash?\n");
@@ -649,6 +674,10 @@ int main(int argc, char *argv[]) {
 	
 	getchar();
 	printList(head);
+	
+	fclose(descriptr);
+	
+	getchar();
 	
     return 0;
 }
