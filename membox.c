@@ -50,7 +50,7 @@ static listSimple* connectionQueue, *head;
 // mutex for active threads
 static pthread_mutex_t actvth = PTHREAD_MUTEX_INITIALIZER;
 // mutex to be called before a mboxStats update
-static pthread_mutex_t stOP = PTHREAD_MUTEX_INITIALIZER, stCO = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t stCO = PTHREAD_MUTEX_INITIALIZER;
 // mutex for connectionQueue
 static pthread_mutex_t coQU = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t coQUwait = PTHREAD_COND_INITIALIZER;
@@ -61,12 +61,6 @@ static pthread_mutex_t dataMUTEX = PTHREAD_MUTEX_INITIALIZER;
  *
  */
 struct statistics  mboxStats = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-
-void getMutex(pthread_mutex_t mutex){
-	int err = -1;
-	while((err = pthread_mutex_lock(&mutex)) == 0)
-		pthread_mutex_unlock(&mutex);
-}
 
 /**
  * @function statOP
@@ -96,11 +90,9 @@ int statOP(int opResult, op_t op){
 			
 			default:
 			{
-				pthread_mutex_unlock(&stOP);
 				return -1;
 			}
 		}
-		pthread_mutex_unlock(&stOP);
 	}
 	else
 	{
@@ -118,11 +110,9 @@ int statOP(int opResult, op_t op){
 			break;
 			default:
 			{
-				pthread_mutex_unlock(&stOP);
 				return -1;
 			}
 		}
-		pthread_mutex_unlock(&stOP);
 	}
 	
 	return 0;
@@ -198,33 +188,25 @@ char* readLine(FILE* fd){
 	return str;
 }
 
-int* readConfig(FILE* fd){
+void readConfig(FILE* fd, int *conf){
 	int i;
-	int *conf;
 	char* str;
 	
-	conf = calloc(5, sizeof(int));
-	str = calloc(UNIX_PATH_MAX, sizeof(char));
+	str = calloc(UNIX_PATH_MAX+1, sizeof(char));
 	for(i = 0; i < 5; i++){
 		do{
 			if(fgets(str, UNIX_PATH_MAX, fd) == NULL){
 				errno = EIO;
-				free(conf);
-				return NULL;
 			}
 		}while(str[0] == '#');
 		
 		str = strchr(str, '=');
 		if(str == NULL){
 			errno = EINVAL;
-			free(conf);
-			return NULL;
 		}
 		str++;
 		conf[i] = atoi(str);
 	}
-	
-	return conf;
 }
 
 /**
@@ -237,138 +219,161 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 	message_t* reply;
 	icl_entry_t* slot;
 	char* tmp = NULL;
-	int result = 1;
+	int result = 1, err = -1;
 	
-	reply = (message_t*)malloc(sizeof(message_t));
+	reply = calloc(1, sizeof(message_t));
 	reply->hdr.key = msg->hdr.key;
 	reply->data.len = msg->data.len;
 	reply->data.buf = msg->data.buf;
 	
-	if(dataTable->lock != socID && dataTable->lock != -1)
+	do
 	{
-		reply->hdr.op = OP_LOCKED;
-		result = 1;
-	}
-	else
-	{
-		switch(msg->hdr.op)
+		if((err = pthread_mutex_lock(&dataMUTEX)) == 0)
 		{
-			//	PUT_OP          = 0,   /// inserimento di un oggetto nel repository
-			case PUT_OP:
+			if(dataTable->lock != socID && dataTable->lock != -1)
 			{
-				if(msg->data.len > maxobjsize && maxobjsize != 0)
-				{					
-					reply->hdr.op = OP_PUT_SIZE;
-					result = 1;
-				}
-				else if(msg->data.len + mboxStats.current_size > storagebyte && storagebyte != 0){
-					reply->hdr.op = OP_PUT_REPOSIZE;
-					result = 1;
-				}
-				else if(mboxStats.current_objects == storagesize && storagesize != 0){
-					reply->hdr.op = OP_PUT_TOOMANY;
-					result = 1;
-				}
-				else if((icl_hash_insert(dataTable, &msg->hdr.key, &msg->data.len, &msg->data.buf)) == NULL)
-				{
-					reply->hdr.op = OP_FAIL;
-					result = 1;
-				}
-				else
-				{
-					reply->hdr.op = OP_OK;
-					result = 0;
-				}
+				reply->hdr.op = OP_LOCKED;
+				result = 1;
 			}
-			break;
-			//	UPDATE_OP       = 1,   /// aggiornamento di un oggetto gia' presente
-			case UPDATE_OP: 
+			else
 			{
-				if((icl_hash_update_insert(dataTable, (void*) (intptr_t) msg->hdr.key, (void*) (intptr_t) msg->data.len, (void*) (intptr_t) msg->data.buf, (void**) tmp)) == NULL)
+				switch(msg->hdr.op)
 				{
-					reply->hdr.op = OP_UPDATE_SIZE;
-					result = 1;
-				}
-				else
-				{
-					if(tmp != NULL)
+					// inserimento di un oggetto nel repository
+					case PUT_OP:
 					{
+						if(msg->data.len > maxobjsize && maxobjsize != 0)
+						{					
+							reply->hdr.op = OP_PUT_SIZE;
+							result = 1;
+						}
+						else if(msg->data.len + mboxStats.current_size > storagebyte && storagebyte != 0){
+							reply->hdr.op = OP_PUT_REPOSIZE;
+							result = 1;
+						}
+						else if(mboxStats.current_objects == storagesize && storagesize != 0){
+							reply->hdr.op = OP_PUT_TOOMANY;
+							result = 1;
+						}
+						else if((icl_hash_insert(dataTable, &msg->hdr.key, &msg->data.len, &msg->data.buf)) == NULL)
+						{
+							reply->hdr.op = OP_FAIL;
+							result = 1;
+						}
+						else
+						{
+							reply->hdr.op = OP_OK;
+							result = 0;
+						}
+					}
+					break;
+					// aggiornamento di un oggetto gia' presente
+					case UPDATE_OP: 
+					{
+						if((icl_hash_update_insert(dataTable, &msg->hdr.key, &msg->data.len, &msg->data.buf, (void**) tmp)) == NULL)
+						{
+							reply->hdr.op = OP_UPDATE_SIZE;
+							result = 1;
+						}
+						else
+						{
+							if(tmp != NULL)
+							{
+								reply->hdr.op = OP_OK;
+								result = 0;
+							}
+							else
+							{
+								reply->hdr.op = OP_UPDATE_NONE;
+								result = 0;
+							}
+						}
+					}
+					break;
+					// recupero di un oggetto dal repository
+					case GET_OP: 
+					{
+						if((slot = icl_hash_find(dataTable, (void*) msg->hdr.key)) == NULL)
+						{
+							reply->hdr.op = OP_GET_NONE;
+							result = 1;
+						}
+						else
+						{
+							reply->hdr.op = OP_OK;
+							reply->data.len = (intptr_t) slot->len;
+							reply->data.buf = slot->data;
+							result = 0;
+						}
+					}
+					break;
+					//	REMOVE_OP       = 3,   /// eliminazione di un oggetto dal repository
+					case REMOVE_OP:
+					{
+						if((icl_hash_delete(dataTable, (void*) msg->hdr.key, *free, *free, *free)) == -1)
+						{
+							reply->hdr.op = OP_REMOVE_NONE;
+							result = 1;
+						}
+						else
+						{
+							reply->hdr.op = OP_OK;
+							result = 0;
+						}
+					}
+					// 	LOCK_OP         = 4,   /// acquisizione di una lock su tutto il repository
+					break;
+					case LOCK_OP: 
+					{
+						dataTable->lock = socID;
 						reply->hdr.op = OP_OK;
 						result = 0;
 					}
-					else
+					// rilascio della lock su tutto il repository
+					break;
+					case UNLOCK_OP: 
 					{
-						reply->hdr.op = OP_UPDATE_NONE;
-						result = 0;
+						if(dataTable->lock != -1)
+						{
+							dataTable->lock = -1;
+							result = 0;
+							reply->hdr.op = OP_OK;
+						}
+						else
+						{
+							reply->hdr.op = OP_LOCK_NONE;
+							result = 1;
+						}
+					}
+					// Invalid OP code
+					break;
+					default: 
+					{
+						perror("OP not recognized.\n");
+						exit(EXIT_FAILURE);
 					}
 				}
 			}
-			break;
-			//	GET_OP          = 2,   /// recupero di un oggetto dal repository
-			case GET_OP: 
-			{
-				if((slot = icl_hash_find(dataTable, (void*) msg->hdr.key)) == NULL)
-				{
-					reply->hdr.op = OP_GET_NONE;
-					result = 1;
-				}
-				else
-				{
-					reply->hdr.op = OP_OK;
-					reply->data.len = (intptr_t) slot->len;
-					reply->data.buf = slot->data;
-					result = 0;
-				}
-			}
-			break;
-			//	REMOVE_OP       = 3,   /// eliminazione di un oggetto dal repository
-			case REMOVE_OP:
-			{
-				if((icl_hash_delete(dataTable, (void*) msg->hdr.key, *free, *free, *free)) == -1)
-				{
-					reply->hdr.op = OP_REMOVE_NONE;
-					result = 1;
-				}
-				else
-				{
-					reply->hdr.op = OP_OK;
-					result = 0;
-				}
-			}
-			// 	LOCK_OP         = 4,   /// acquisizione di una lock su tutto il repository
-			break;
-			case LOCK_OP: 
-			{
-				dataTable->lock = socID;
-				reply->hdr.op = OP_OK;
-				result = 0;
-			}
-			// 	UNLOCK_OP       = 5,   /// rilascio della lock su tutto il repository
-			break;
-			case UNLOCK_OP: 
-			{
-				if(dataTable->lock != -1)
-				{
-					dataTable->lock = -1;
-					result = 0;
-					reply->hdr.op = OP_OK;
-				}
-				else
-				{
-					reply->hdr.op = OP_LOCK_NONE;
-					result = 1;
-				}
-			}
-			// Invalid OP code
-			break;
-			default: 
-			{
-				perror("OP not recognized.\n");
-				exit(EXIT_FAILURE);
-			}
+			pthread_mutex_unlock(&dataMUTEX);
+		}
+		else
+		{
+			pthread_mutex_unlock(&dataMUTEX);
 		}
 	}
-	statOP(result, msg->hdr.op);
+	while(err != 0);
+	err = -1;
+	do
+	{
+		if((err = pthread_mutex_lock(&stCO)) == 0)
+		{
+			statOP(result, msg->hdr.op);
+			pthread_mutex_unlock(&stCO);
+		}
+		else
+			pthread_mutex_unlock(&stCO);
+	}
+	while(err != 0);
 	return reply;
 }
 
@@ -409,7 +414,7 @@ int initActivity(int flag){
 
 void *dealmaker(void* arg){
 	int err, quit, thrdnumber, soktAcc, socID = (intptr_t) arg;
-	int err2, err3;
+	int err2;
 	listSimple* tmp;
 	message_t* receiver, *reply;
 	
@@ -417,7 +422,7 @@ void *dealmaker(void* arg){
 	thrdnumber = initActivity(1);
 		
 	// alloco la struttura dati che riceve il messaggio
-	if((receiver = (message_t*)malloc(sizeof(message_t))) == NULL)
+	if((receiver = calloc(1, sizeof(message_t))) == NULL)
 	{
 		errno = ENOMEM;
 		exit(EXIT_FAILURE);
@@ -436,9 +441,7 @@ void *dealmaker(void* arg){
 				}
 				
 				// altrimenti opero sulla testa della coda
-				assert(queueLength != 0);
 				soktAcc = head->sokAddr;
-				assert(soktAcc != -1);
 				tmp = head;
 				head = head->next;
 				free(tmp);
@@ -483,29 +486,19 @@ void *dealmaker(void* arg){
 				}
 					
 				// mando il messaggio a selectorOP che si occupa del resto
-				err3 = -1;
 				if(quit != 1)
 				{
-					do
+					if((reply = selectorOP(receiver, soktAcc, &quit)) == NULL && quit != 0)
 					{
-						if((err3 = pthread_mutex_lock(&dataMUTEX)) == 0)
-						{
-							if((reply = selectorOP(receiver, soktAcc, &quit)) == NULL && quit != 0)
-							{
-								pthread_mutex_unlock(&dataMUTEX);
-								perror("selectorOP fluked\n");
-								exit(EXIT_FAILURE);
-							}
-							else
-							{
-								pthread_mutex_unlock(&dataMUTEX);
-								sendRequest(socID, reply);
-							}
-							printMsg(receiver, thrdnumber);
-							sleep(1);
-						}
+						perror("selectorOP fluked\n");
+						exit(EXIT_FAILURE);
 					}
-					while(err3 != 0);
+					else
+					{
+						sendRequest(socID, reply);
+						printMsg(receiver, thrdnumber);
+					}
+					sleep(1);
 				}
 			}					
 			// elimino eventuale lock della repository creata da questo client
@@ -541,13 +534,11 @@ void *dealmaker(void* arg){
 
 void* dispatcher(void* args){
 	int socID = (intptr_t) args, err3;
-	int err = -1, err2 = -1;
+	int err = -1;
 	while(1)
 	{
 		if((err = pthread_mutex_lock(&coQU)) == 0)
 		{
-			printf("producer has mutex\n");
-			fflush(stdout);
 			if(queueLength + mboxStats.concurrent_connections < maxconnections)
 			{
 				pthread_mutex_unlock(&coQU);
@@ -558,21 +549,13 @@ void* dispatcher(void* args){
 					{
 						if((err3 = pthread_mutex_lock(&coQU)) == 0)
 						{
-							connectionQueue->next = (listSimple*)malloc(sizeof(listSimple));
+							connectionQueue->next = calloc(1, sizeof(listSimple));
 							queueLength++;
 							connectionQueue = connectionQueue->next;
 							connectionQueue->sokAddr = -1;
 							connectionQueue->next = NULL;
 							pthread_cond_signal(&coQUwait);
 							pthread_mutex_unlock(&coQU);
-							// debug code to print on the log file
-							do
-							{
-								if((err2 = pthread_mutex_lock(&stOP)) == 0)
-									printStats(descriptr);
-								pthread_mutex_unlock(&stOP);
-							}
-							while(err2 != 0);
 						}
 					}
 					while(err3 != 0);
@@ -585,7 +568,7 @@ void* dispatcher(void* args){
 }
 
 int main(int argc, char *argv[]) {
-	int *config, socID, err, i = 0;
+	int config[5], socID, err, err2, i = 0;
 	pthread_t* thrds, disp;
 	FILE *fp;
 	
@@ -599,7 +582,7 @@ int main(int argc, char *argv[]) {
     
     // leggo il file di configurazione
     socketpath = readLine(fp);
-    config = readConfig(fp);
+    readConfig(fp, config);
     statfilepath = readLine(fp);
     fclose(fp);
     
@@ -616,7 +599,6 @@ int main(int argc, char *argv[]) {
 		printf("WARNING: You have set more threads than are allowed connections. MaxConnections has been automatically set equal to ThreadsInPool.\n"); 
 		maxconnections = threadsinpool;
 	}
-    free(config);
     
     // array dove salvo i pid dei thread
     if((thrds = calloc(threadsinpool, sizeof(pthread_t))) == NULL)
@@ -626,7 +608,7 @@ int main(int argc, char *argv[]) {
 	}
     
 	// array dove salvo le connessioni in attesa
-	if((connectionQueue = (listSimple*)malloc(sizeof(listSimple))) == NULL)
+	if((connectionQueue = calloc(1, sizeof(listSimple))) == NULL)
 	{
 		errno = ENOMEM;
 		return -1;
@@ -673,11 +655,20 @@ int main(int argc, char *argv[]) {
 	}
 	
 	getchar();
+	err2 = -1;
 	printList(head);
-	
+	do
+		{
+		if((err2 = pthread_mutex_lock(&stCO)) == 0)
+			printStats(descriptr);
+		pthread_mutex_unlock(&stCO);
+	}
+	while(err2 != 0);
 	fclose(descriptr);
 	
 	getchar();
+	
+	
 	
     return 0;
 }

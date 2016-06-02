@@ -118,7 +118,7 @@ int readHeader(long fd, message_hdr_t *hdr){
 	char *storage;
 	
 	//alloco storage per ospitare sia op che chiave
-	if((storage = (char*)malloc(sizeof(op_t)+sizeof(membox_key_t))) == NULL)
+	if((storage = calloc(1, sizeof(op_t)+sizeof(membox_key_t))) == NULL)
 	{
 		errno = ENOMEM; 
 		return -1;
@@ -171,18 +171,26 @@ int readData(long fd, message_data_t *data){
 	memcpy(&data->len, &length, sizeof(unsigned int));
 	
 	//alloco storage per ospitare data
-	if((storage = (char*)malloc(sizeof(char)*(data->len))) == NULL)
+	if((storage = calloc(length, sizeof(char))) == NULL)
 	{
 		errno = ENOMEM; 
 		return -1;
 	}
 	
 	//leggo data dal socket 
-	ck = read(fd, storage+(sizeof(char)*ck), (sizeof(char)*length));
+	ck = read(fd, storage, (sizeof(char)*length));
 	if(ck < 0)
 	{	
-		free(storage);
+		if(storage != NULL)
+			free(storage);
 		return -1;
+	}
+	// in caso la read non sia più atomica
+	else if(ck > 0 && ck < length)
+	{
+		do
+			ck = read(fd, storage+(sizeof(char)*ck), (sizeof(char)*(length-ck)));
+		while(ck != 0);
 	}
 	data->buf = storage;
 	
@@ -208,7 +216,7 @@ int sendRequest(long fd, message_t *msg){
 	char* storage;
 	
 	//preparo hdr
-	if((storage = (char*)malloc(sizeof(op_t)+sizeof(membox_key_t))) == NULL){
+	if((storage = calloc(1, sizeof(op_t)+sizeof(membox_key_t))) == NULL){
 		errno = ENOMEM; 
 		return -1;
 	}
@@ -217,13 +225,13 @@ int sendRequest(long fd, message_t *msg){
 	
 	//mando hdr
 	if((write(fd, storage, sizeof(op_t)+sizeof(membox_key_t))) == -1){
-		free(storage);
+		//free(storage);
 		return -1;
 	}
 	free(storage);
 	
 	//preparo data
-	if((storage = (char*)malloc(sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == NULL){
+	if((storage = calloc(msg->data.len, (sizeof(unsigned int)+sizeof(char)))) == NULL){
 		errno = ENOMEM; 
 		return -1;
 	}
@@ -232,7 +240,7 @@ int sendRequest(long fd, message_t *msg){
 	memcpy(storage+sizeof(op_t), msg->data.buf, sizeof(char)*msg->data.len);
 	//mando data
 	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){
-		free(storage);
+		//free(storage);
 		return -1;
 	}
 	free(storage);
@@ -256,8 +264,3 @@ int readReply(long fd, message_t *msg){
 }
 
 #endif /* CONNECTIONS_H_ */
-/*int main()
-{
-    // TODO: implementation
-    return 0;
-}*/
