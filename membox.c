@@ -69,7 +69,7 @@ struct statistics  mboxStats = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
  * @param opResult	the integer resulting from an OP function
  * @param op 		the operation which we need to stat
  */ //TODO: inplement mutex
-int statOP(int opResult, op_t op){
+int statOP(int opResult, op_t op, int length){
 	if(opResult == 0)
 	{
 		switch(op)
@@ -77,6 +77,12 @@ int statOP(int opResult, op_t op){
 			case PUT_OP:
 			{
 				mboxStats.nget++;
+				mboxStats.current_objects++;
+				mboxStats.current_size += length*sizeof(char);
+				if(mboxStats.max_size < mboxStats.current_size)
+					mboxStats.max_size = mboxStats.current_size;
+				if(mboxStats.max_objects < mboxStats.current_objects)
+					mboxStats.max_objects = mboxStats.current_objects;
 			}
 			break;
 			case UPDATE_OP: mboxStats.nupdate++;
@@ -85,7 +91,12 @@ int statOP(int opResult, op_t op){
 			break;
 			case GET_OP: mboxStats.nget++;
 			break;
-			case REMOVE_OP: mboxStats.nremove++;
+			case REMOVE_OP: 
+			{
+				mboxStats.nremove++;
+				mboxStats.current_objects--;
+				mboxStats.current_size -= length*sizeof(char);
+			}
 			break;
 			
 			default:
@@ -192,7 +203,13 @@ void readConfig(FILE* fd, int *conf){
 	int i;
 	char* str;
 	
-	str = calloc(UNIX_PATH_MAX+1, sizeof(char));
+	str = calloc(5, (UNIX_PATH_MAX+1)*(sizeof(char)));
+	if(sizeof(str) == 0)
+	{
+		printf("fail\n");
+		fflush(stdout);
+		exit(EXIT_FAILURE);
+	}
 	for(i = 0; i < 5; i++){
 		do{
 			if(fgets(str, UNIX_PATH_MAX, fd) == NULL){
@@ -367,7 +384,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 	{
 		if((err = pthread_mutex_lock(&stCO)) == 0)
 		{
-			statOP(result, msg->hdr.op);
+			statOP(result, msg->hdr.op, msg->data.len);
 			pthread_mutex_unlock(&stCO);
 		}
 		else
