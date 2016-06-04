@@ -168,15 +168,17 @@ int statStructure(int size, int side){
 }
 
 char* readLine(FILE* fd){
-	char *str, *p;
+	char *str, *p, *tmp, *ret;
 	
 	str = calloc(UNIX_PATH_MAX+40, sizeof(char));
+	tmp = str;
 	
 	do
 	{
 		if(fgets(str, UNIX_PATH_MAX+30, fd) == NULL)
 		{
 			errno = EIO;
+			free(tmp);
 			return NULL;
 		}
 	}while(str[0] == '#');
@@ -185,6 +187,7 @@ char* readLine(FILE* fd){
 	if(str == NULL)
 	{
 		errno = EINVAL;
+		free(tmp);
 		return NULL;
 	}
 	
@@ -196,33 +199,32 @@ char* readLine(FILE* fd){
 	p = strchr(str, '\n');
 	if(p != NULL) *p = '\0';
 	
-	return str;
+	ret = calloc(strlen(str)+1, sizeof(char));
+	strcpy(ret, str);
+	free(tmp);
+	
+	return ret;
 }
 
 void readConfig(FILE* fd, int *conf){
 	int i;
-	char* str;
+	char* str, *tmp;
 	
-	str = calloc(5, (UNIX_PATH_MAX+1)*(sizeof(char)));
-	if(sizeof(str) == 0)
+	str = calloc(UNIX_PATH_MAX, (sizeof(char)));
+	
+	for(i = 0; i < 5; i++)
 	{
-		printf("fail\n");
-		fflush(stdout);
-		exit(EXIT_FAILURE);
-	}
-	for(i = 0; i < 5; i++){
 		do{
 			if(fgets(str, UNIX_PATH_MAX, fd) == NULL){
 				errno = EIO;
 			}
 		}while(str[0] == '#');
-		
-		str = strchr(str, '=');
-		if(str == NULL){
+		tmp = strchr(str, '=');
+		if(tmp == NULL){
 			errno = EINVAL;
 		}
-		str++;
-		conf[i] = atoi(str);
+		tmp++;
+		conf[i] = atoi(tmp);
 	}
 }
 
@@ -259,22 +261,23 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					// inserimento di un oggetto nel repository
 					case PUT_OP:
 					{
-						if(msg->data.len > maxobjsize && maxobjsize != 0)
+						if(maxobjsize != 0 && msg->data.len > maxobjsize)
 						{					
 							reply->hdr.op = OP_PUT_SIZE;
 							result = 1;
 						}
-						else if(msg->data.len + mboxStats.current_size > storagebyte && storagebyte != 0){
+						else if(storagebyte != 0 && msg->data.len + mboxStats.current_size > storagebyte){
 							reply->hdr.op = OP_PUT_REPOSIZE;
 							result = 1;
 						}
-						else if(mboxStats.current_objects == storagesize && storagesize != 0){
+						else if(storagesize != 0 && mboxStats.current_objects == storagesize){
 							reply->hdr.op = OP_PUT_TOOMANY;
 							result = 1;
 						}
 						else if((icl_hash_insert(dataTable, &msg->hdr.key, &msg->data.len, &msg->data.buf)) == NULL)
 						{
 							reply->hdr.op = OP_FAIL;
+							printf("couldn't allocate datatable space\n");
 							result = 1;
 						}
 						else
@@ -640,7 +643,6 @@ int main(int argc, char *argv[]) {
 		errno = ENOMEM;
 		return -1;
 	}
-	printf("%d\n", dataTable->lock);
     
     // apro il file di log
     descriptr = fopen(statfilepath, "w+");
