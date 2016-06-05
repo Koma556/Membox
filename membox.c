@@ -41,7 +41,7 @@ typedef struct listS{
 	struct listS* next;
 }listSimple;
 
-static char *socketpath, *statfilepath;
+static char *socketpath;
 static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize, activethreads = 0, queueLength = 0, count = 0;
 static FILE* descriptr;
 // Struttura dati condivisa
@@ -233,6 +233,7 @@ void readConfig(FILE* fd, int *conf){
  * @brief deals with whatever operation the machine asked for
  * 
  * @param msg	puntatore al messaggio gia' spacchettato 
+ * @param socID ID del socket sul quale sono connesso
  */
 message_t* selectorOP(message_t *msg, int socID, int* quit){
 	message_t* reply;
@@ -274,10 +275,13 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 							reply->hdr.op = OP_PUT_TOOMANY;
 							result = 1;
 						}
-						else if((icl_hash_insert(dataTable, &msg->hdr.key, &msg->data.len, &msg->data.buf)) == NULL)
+						else if((icl_hash_insert(dataTable, &(msg->hdr.key), &(msg->data.len), (void*)msg->data.buf)) == NULL)
 						{
-							reply->hdr.op = OP_FAIL;
-							printf("couldn't allocate datatable space\n");
+							// errno e' stato settato all'interno di icl_hash_insert
+							if(errno == EINVAL)
+								reply->hdr.op = OP_PUT_ALREADY;
+							else
+								reply->hdr.op = OP_FAIL; // not enough memory
 							result = 1;
 						}
 						else
@@ -290,7 +294,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					// aggiornamento di un oggetto gia' presente
 					case UPDATE_OP: 
 					{
-						if((icl_hash_update_insert(dataTable, &msg->hdr.key, &msg->data.len, &msg->data.buf, (void**) tmp)) == NULL)
+						if((icl_hash_update_insert(dataTable, &msg->hdr.key, &msg->data.len, (void*) msg->data.buf, (void**) tmp)) == NULL)
 						{
 							reply->hdr.op = OP_UPDATE_SIZE;
 							result = 1;
@@ -313,7 +317,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					// recupero di un oggetto dal repository
 					case GET_OP: 
 					{
-						if((slot = icl_hash_find(dataTable, (void*) msg->hdr.key)) == NULL)
+						if((slot = icl_hash_find(dataTable, &msg->hdr.key)) == NULL)
 						{
 							reply->hdr.op = OP_GET_NONE;
 							result = 1;
@@ -330,7 +334,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					//	REMOVE_OP       = 3,   /// eliminazione di un oggetto dal repository
 					case REMOVE_OP:
 					{
-						if((icl_hash_delete(dataTable, (void*) msg->hdr.key, *free, *free, *free)) == -1)
+						if((icl_hash_delete(dataTable, &msg->hdr.key, NULL, NULL, NULL)) == -1)
 						{
 							reply->hdr.op = OP_REMOVE_NONE;
 							result = 1;
@@ -517,6 +521,7 @@ void *dealmaker(void* arg){
 					{
 						sendRequest(socID, reply);
 						printMsg(receiver, thrdnumber);
+						//TODO: free receiver
 					}
 					sleep(1);
 				}
@@ -589,8 +594,13 @@ void* dispatcher(void* args){
 
 int main(int argc, char *argv[]) {
 	int config[5], socID, err, err2, i = 0;
+	char *statfilepath;
 	pthread_t* thrds, disp;
 	FILE *fp;
+	
+	//TODO: mask signals
+	// SIGUSR1: close all threads and then quit
+	// SIGUSR2: stamp mboxStat to file if file exists
 	
 	// apro il file di configurazione
 	fp = fopen("config.txt", "r");
@@ -638,14 +648,15 @@ int main(int argc, char *argv[]) {
 	head = connectionQueue;
 	
     // alloco la struttura dati d'hash condivisa
-    if((dataTable = icl_hash_create(maxconnections, &ulong_hash_function, &ulong_key_compare)) == NULL)
+    if((dataTable = icl_hash_create(1087, ulong_hash_function, ulong_key_compare)) == NULL)
     {
 		errno = ENOMEM;
 		return -1;
 	}
     
     // apro il file di log
-    descriptr = fopen(statfilepath, "w+");
+    if(statfilepath != NULL)
+		descriptr = fopen(statfilepath, "w+");
         
     // creo il socket
     if(remove(socketpath) == 0)printf("Cleaned up old Socket.\nPossible recovery after crash?\n");
@@ -674,20 +685,27 @@ int main(int argc, char *argv[]) {
 	}
 	
 	getchar();
-	err2 = -1;
-	printList(head);
-	do
-		{
-		if((err2 = pthread_mutex_lock(&stCO)) == 0)
-			printStats(descriptr);
-		pthread_mutex_unlock(&stCO);
+	
+	//TODO: gently close all threads
+	
+	//TODO: remove this block, statfile has to be printed only in case of SIGUSR2 signal
+	if(statfilepath != NULL)
+	{
+		err2 = -1;
+		printList(head);
+		do
+			{
+			if((err2 = pthread_mutex_lock(&stCO)) == 0)
+				printStats(descriptr);
+			pthread_mutex_unlock(&stCO);
+		}
+		while(err2 != 0);
+		fclose(descriptr);
 	}
-	while(err2 != 0);
-	fclose(descriptr);
 	
 	getchar();
-	
-	
+	//TODO: cleanup dataTable
+	icl_hash_destroy(dataTable, NULL, NULL, NULL);
 	
     return 0;
 }
