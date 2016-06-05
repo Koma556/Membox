@@ -444,13 +444,6 @@ void *dealmaker(void* arg){
 	
 	//lock e aggiungo al numero di thread attivi
 	thrdnumber = initActivity(1);
-		
-	// alloco la struttura dati che riceve il messaggio
-	if((receiver = calloc(1, sizeof(message_t))) == NULL)
-	{
-		errno = ENOMEM;
-		exit(EXIT_FAILURE);
-	}
 	
 	while(1)
 	{
@@ -499,6 +492,13 @@ void *dealmaker(void* arg){
 			quit = 0;
 			while(quit != 1)
 			{
+				// alloco la struttura dati che riceve il messaggio
+				if((receiver = calloc(1, sizeof(message_t))) == NULL)
+				{
+					errno = ENOMEM;
+					exit(EXIT_FAILURE);
+				}
+				
 				// Leggo quello che il client mi scrive
 				if(readHeader(soktAcc, &receiver->hdr)!=0)
 				{
@@ -521,10 +521,10 @@ void *dealmaker(void* arg){
 					{
 						sendRequest(socID, reply);
 						printMsg(receiver, thrdnumber);
-						//TODO: free receiver
 					}
 					sleep(1);
 				}
+				free(receiver);
 			}					
 			// elimino eventuale lock della repository creata da questo client
 			if(dataTable->lock == soktAcc) dataTable->lock = -1;

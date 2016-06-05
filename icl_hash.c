@@ -173,22 +173,24 @@ icl_hash_insert(icl_hash_t *ht, void* key, void *len, void *data)
     curr->key = newkey;
     
     newlen = calloc(1, sizeof(unsigned int));
-	*newlen = *(int*)len;
+	*newlen = *(unsigned int*)len;
     curr->len = newlen;
     
-    newdata = calloc((*newlen), sizeof(char));
-    strcpy(newdata, data);
+    printf("newlen: %u\n", *newlen);
+    newdata = calloc(*newlen, sizeof(char));
+    memcpy(newdata, data, sizeof(char)*(*newlen));
     curr->data = newdata;
     
     curr->next = ht->buckets[hash_val]; /* add at start */
     ht->buckets[hash_val] = curr;
     ht->nentries++;
-    
+
+    /*
     printf("INSERTED key: %u in bucket[%u]::", *(unsigned int*)key, hash_val);
 			for (tmp=ht->buckets[hash_val]; tmp != NULL; tmp=tmp->next)
 				printf("\t%u", *(unsigned int*)tmp->key);
     printf("\n\n");
-
+	//*/
     return curr;
 }
 
