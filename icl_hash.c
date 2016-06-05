@@ -177,7 +177,7 @@ icl_hash_insert(icl_hash_t *ht, void* key, void *len, void *data)
     curr->len = newlen;
     
     newdata = calloc((*newlen), sizeof(char));
-    *newdata = *(char*)data;
+    strcpy(newdata, data);
     curr->data = newdata;
     
     curr->next = ht->buckets[hash_val]; /* add at start */
