@@ -42,7 +42,7 @@ typedef struct listS{
 }listSimple;
 
 static char *socketpath;
-static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize, activethreads = 0, queueLength = 0, count = 0;
+static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize, activethreads = 0, queueLength = 0, count = 0, replock = -1;
 static FILE* descriptr;
 // Struttura dati condivisa
 static icl_hash_t* dataTable;
@@ -229,6 +229,16 @@ void readConfig(FILE* fd, int *conf){
 	free(str);
 }
 
+//TODO: MAKE THEM WORK
+void cleaninFun(void* arg){
+	printf("freeing key: %d\n", *(unsigned int*)arg);
+	free(arg);
+}
+void cleaninData(void* arg){
+	printf("freeing data: %s\n", (char*)arg);
+	free((char*)arg);
+}
+
 /**
  * @function selectorOP
  * @brief deals with whatever operation the machine asked for
@@ -238,7 +248,8 @@ void readConfig(FILE* fd, int *conf){
  */
 message_t* selectorOP(message_t *msg, int socID, int* quit){
 	message_t* reply;
-	icl_entry_t* slot;
+	unsigned int *newkey;
+    char *newdata, *olddata = NULL;
 	int result = 1, err = -1;
 	
 	reply = calloc(1, sizeof(message_t));
@@ -246,11 +257,14 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 	reply->data.len = msg->data.len;
 	reply->data.buf = msg->data.buf;
 	
+	// alloco/setto le variabili da passare per l'ashing
+	//TODO: NEED TO FIND A WAY TO FREE THEM!!!
+	
 	do
 	{
 		if((err = pthread_mutex_lock(&dataMUTEX)) == 0)
 		{
-			if(dataTable->lock != socID && dataTable->lock != -1)
+			if(replock != socID && replock != -1)
 			{
 				reply->hdr.op = OP_LOCKED;
 				result = 1;
@@ -262,6 +276,11 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					// inserimento di un oggetto nel repository
 					case PUT_OP:
 					{
+						newkey = calloc(1, sizeof(unsigned int*));
+						*newkey = msg->hdr.key;
+						newdata = calloc(msg->data.len+1, sizeof(char));
+						memcpy(newdata, msg->data.buf, sizeof(char)*(msg->data.len));
+						
 						if(maxobjsize != 0 && msg->data.len > maxobjsize)
 						{					
 							reply->hdr.op = OP_PUT_SIZE;
@@ -275,10 +294,10 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 							reply->hdr.op = OP_PUT_TOOMANY;
 							result = 1;
 						}
-						else if((icl_hash_insert(dataTable, &(msg->hdr.key), &(msg->data.len), (void*)msg->data.buf)) == NULL)
+						else if((icl_hash_insert(dataTable, newkey, (void*)newdata)) == NULL)
 						{
-							// errno e' stato settato all'interno di icl_hash_insert
-							if(errno == EINVAL)
+							// dato che non posso modificare le funzioni in icl_hash, cerco di nuovo
+							if(icl_hash_find(dataTable, newkey) != NULL)
 								reply->hdr.op = OP_PUT_ALREADY;
 							else
 								reply->hdr.op = OP_FAIL; // not enough memory
@@ -292,56 +311,46 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					}
 					break;
 					// aggiornamento di un oggetto gia' presente
-					/*
 					case UPDATE_OP: 
 					{
-						if((icl_hash_update_insert(dataTable, &msg->hdr.key, &msg->data.len, (void*) msg->data.buf, (void**) tmp)) == NULL)
+						newkey = calloc(1, sizeof(unsigned int*));
+						*newkey = msg->hdr.key;
+						newdata = calloc(msg->data.len+1, sizeof(char));
+						memcpy(newdata, msg->data.buf, sizeof(char)*(msg->data.len));
+						//find old entry
+						//compare len dei due data
+						//replace if ==
+						olddata = (char*)icl_hash_find(dataTable, &msg->hdr.key);
+						if(olddata != NULL)
 						{
-							reply->hdr.op = OP_UPDATE_SIZE;
-							result = 1;
-						}
-						else
-						{
-							if(tmp != NULL)
+							if((unsigned int)strlen(olddata) == msg->data.len)
 							{
+								icl_hash_delete(dataTable, &msg->hdr.key, cleaninFun, cleaninData);
+								icl_hash_insert(dataTable, newkey, newdata);
 								reply->hdr.op = OP_OK;
 								result = 0;
 							}
 							else
 							{
-								reply->hdr.op = OP_UPDATE_NONE;
-								result = 0;
-							}
-						}
-					}
-					break;
-					*/
-					case UPDATE_OP: 
-					{
-						if((slot = icl_hash_update_insert(dataTable, &(msg->hdr.key), &(msg->data.len), (void*)msg->data.buf)) == NULL)
-						{
-							if(errno == EINVAL)
-							{
 								reply->hdr.op = OP_UPDATE_SIZE;
+								free(newdata);
+								free(newkey);
 								result = 1;
-							}
-							else
-							{
-								reply->hdr.op = OP_UPDATE_NONE;
-								result = 0;
 							}
 						}
 						else
 						{
-							reply->hdr.op = OP_OK;
-							result = 0;
+							reply->hdr.op = OP_UPDATE_NONE;
+							free(newdata);
+							free(newkey);
+							result = 1;
 						}
 					}
 					break;
 					// recupero di un oggetto dal repository
 					case GET_OP: 
 					{
-						if((slot = icl_hash_find(dataTable, &msg->hdr.key)) == NULL)
+						if((olddata = icl_hash_find(dataTable, newkey)) == NULL)
 						{
 							reply->hdr.op = OP_GET_NONE;
 							result = 1;
@@ -349,8 +358,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 						else
 						{
 							reply->hdr.op = OP_OK;
-							reply->data.len = (intptr_t) slot->len;
-							reply->data.buf = slot->data;
+							reply->data.buf = olddata;
 							result = 0;
 						}
 					}
@@ -358,7 +366,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					//	REMOVE_OP       = 3,   /// eliminazione di un oggetto dal repository
 					case REMOVE_OP:
 					{
-						if((icl_hash_delete(dataTable, &msg->hdr.key, free, free, free)) == -1)
+						if((icl_hash_delete(dataTable, &msg->hdr.key, cleaninFun, cleaninData)) == -1)
 						{
 							reply->hdr.op = OP_REMOVE_NONE;
 							result = 1;
@@ -373,7 +381,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					break;
 					case LOCK_OP: 
 					{
-						dataTable->lock = socID;
+						replock = socID;
 						reply->hdr.op = OP_OK;
 						result = 0;
 					}
@@ -381,9 +389,9 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					break;
 					case UNLOCK_OP: 
 					{
-						if(dataTable->lock != -1)
+						if(replock != -1)
 						{
-							dataTable->lock = -1;
+							replock = -1;
 							result = 0;
 							reply->hdr.op = OP_OK;
 						}
@@ -544,14 +552,16 @@ void *dealmaker(void* arg){
 					else
 					{
 						sendRequest(socID, reply);
+						free(reply);
 						printMsg(receiver, thrdnumber);
 					}
 					sleep(1);
 				}
+				free(receiver->data.buf);
 				free(receiver);
 			}					
 			// elimino eventuale lock della repository creata da questo client
-			if(dataTable->lock == soktAcc) dataTable->lock = -1;
+			if(replock == soktAcc) replock = -1;
 			
 			// chiudo il socket e rimuovo la connessione dalle attive
 			err = -1;
@@ -729,10 +739,10 @@ int main(int argc, char *argv[]) {
 	
 	getchar();
 	
-	icl_hash_destroy(dataTable, free, free, free);
+	icl_hash_destroy(dataTable, cleaninFun, cleaninData);
 	free(statfilepath);
 	free(socketpath);
-	//TODO: JOIN THREADS
+	//TODO: JOIN THREADS, only memory leak left open
 	free(thrds);
 	
     return 0;
