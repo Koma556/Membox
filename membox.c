@@ -358,7 +358,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					//	REMOVE_OP       = 3,   /// eliminazione di un oggetto dal repository
 					case REMOVE_OP:
 					{
-						if((icl_hash_delete(dataTable, &msg->hdr.key, NULL, NULL, NULL)) == -1)
+						if((icl_hash_delete(dataTable, &msg->hdr.key, free, free, free)) == -1)
 						{
 							reply->hdr.op = OP_REMOVE_NONE;
 							result = 1;
