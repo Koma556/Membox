@@ -226,6 +226,7 @@ void readConfig(FILE* fd, int *conf){
 		tmp++;
 		conf[i] = atoi(tmp);
 	}
+	free(str);
 }
 
 /**
@@ -238,7 +239,6 @@ void readConfig(FILE* fd, int *conf){
 message_t* selectorOP(message_t *msg, int socID, int* quit){
 	message_t* reply;
 	icl_entry_t* slot;
-	char* tmp = NULL;
 	int result = 1, err = -1;
 	
 	reply = calloc(1, sizeof(message_t));
@@ -292,6 +292,7 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 					}
 					break;
 					// aggiornamento di un oggetto gia' presente
+					/*
 					case UPDATE_OP: 
 					{
 						if((icl_hash_update_insert(dataTable, &msg->hdr.key, &msg->data.len, (void*) msg->data.buf, (void**) tmp)) == NULL)
@@ -311,6 +312,29 @@ message_t* selectorOP(message_t *msg, int socID, int* quit){
 								reply->hdr.op = OP_UPDATE_NONE;
 								result = 0;
 							}
+						}
+					}
+					break;
+					*/
+					case UPDATE_OP: 
+					{
+						if((slot = icl_hash_update_insert(dataTable, &(msg->hdr.key), &(msg->data.len), (void*)msg->data.buf)) == NULL)
+						{
+							if(errno == EINVAL)
+							{
+								reply->hdr.op = OP_UPDATE_SIZE;
+								result = 1;
+							}
+							else
+							{
+								reply->hdr.op = OP_UPDATE_NONE;
+								result = 0;
+							}
+						}
+						else
+						{
+							reply->hdr.op = OP_OK;
+							result = 0;
 						}
 					}
 					break;
@@ -704,8 +728,12 @@ int main(int argc, char *argv[]) {
 	}
 	
 	getchar();
-	//TODO: cleanup dataTable
-	icl_hash_destroy(dataTable, NULL, NULL, NULL);
+	
+	icl_hash_destroy(dataTable, free, free, free);
+	free(statfilepath);
+	free(socketpath);
+	//TODO: JOIN THREADS
+	free(thrds);
 	
     return 0;
 }

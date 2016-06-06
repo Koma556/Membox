@@ -225,7 +225,7 @@ int sendRequest(long fd, message_t *msg){
 	
 	//mando hdr
 	if((write(fd, storage, sizeof(op_t)+sizeof(membox_key_t))) == -1){
-		//free(storage);
+		free(storage);
 		return -1;
 	}
 	free(storage);
@@ -233,6 +233,7 @@ int sendRequest(long fd, message_t *msg){
 	//preparo data
 	if((storage = calloc(msg->data.len, (sizeof(unsigned int)+sizeof(char)))) == NULL){
 		errno = ENOMEM; 
+		free(storage);
 		return -1;
 	}
 		
@@ -240,7 +241,7 @@ int sendRequest(long fd, message_t *msg){
 	memcpy(storage+sizeof(op_t), msg->data.buf, sizeof(char)*msg->data.len);
 	//mando data
 	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){
-		//free(storage);
+		free(storage);
 		return -1;
 	}
 	free(storage);

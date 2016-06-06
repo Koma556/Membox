@@ -40,7 +40,7 @@ void
 
 icl_entry_t
 * icl_hash_insert(icl_hash_t *, void*, void *, void *),
-    * icl_hash_update_insert(icl_hash_t *, void*, void *, void *, void **);
+    * icl_hash_update_insert(icl_hash_t *, void*, void *, void *);
 
 int
 icl_hash_destroy(icl_hash_t *, void (*)(void*), void (*)(void*), void (*)(void*)),

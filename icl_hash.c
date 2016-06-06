@@ -139,21 +139,20 @@ icl_hash_insert(icl_hash_t *ht, void* key, void *len, void *data)
     if(!ht || !key) return NULL;
 	
     hash_val = (* ht->hash_function)(key) % ht->nbuckets;
-	
+	/*
 	printf("Inserting key: %u in bucket[%u]::", *(unsigned int*)key, hash_val);
 	icl_entry_t* tmp;
 			for (tmp=ht->buckets[hash_val]; tmp != NULL; tmp=tmp->next)
 				printf("\t%u", *(unsigned int*)tmp->key);
     printf("\n");
-	
+	//*/
     for (curr=ht->buckets[hash_val]; curr != NULL; curr=curr->next)
         if ( ht->hash_key_compare(curr->key, key))
         {
-			printf("curr->key: %u\tkey: %u\tbucket %u::", *(unsigned int*)curr->key, *(unsigned int*)key, hash_val);
-			
+			/*printf("curr->key: %u\tkey: %u\tbucket %u::", *(unsigned int*)curr->key, *(unsigned int*)key, hash_val);
 			for (tmp=ht->buckets[hash_val]; tmp != NULL; tmp=tmp->next)
 				printf("\t%u", *(unsigned int*)tmp->key);
-				
+			//*/	
 			errno = EINVAL;
 			printf("\n%s\n",strerror(errno));
 			return(NULL); /* key already exists */
@@ -168,15 +167,14 @@ icl_hash_insert(icl_hash_t *ht, void* key, void *len, void *data)
 		return NULL;
 	}
 	
-	newkey = calloc(1, sizeof(unsigned int));
-	*newkey = *(unsigned int*)key;
+	newkey = calloc(1, sizeof(unsigned long));
+	*newkey = *(unsigned long*)key;
     curr->key = newkey;
     
     newlen = calloc(1, sizeof(unsigned int));
 	*newlen = *(unsigned int*)len;
     curr->len = newlen;
     
-    printf("newlen: %u\n", *newlen);
     newdata = calloc(*newlen, sizeof(char));
     memcpy(newdata, data, sizeof(char)*(*newlen));
     curr->data = newdata;
@@ -206,52 +204,38 @@ icl_hash_insert(icl_hash_t *ht, void* key, void *len, void *data)
  */
 
 icl_entry_t *
-icl_hash_update_insert(icl_hash_t *ht, void* key, void *newLen, void *data, void **olddata)
+icl_hash_update_insert(icl_hash_t *ht, void* key, void *newLen, void *data)
 {
-    icl_entry_t *curr, *prev;
+    icl_entry_t *curr;
     unsigned int hash_val;
+    char* newdata;
+    int tmp = *(unsigned int*)newLen;
 
     if(!ht || !key) return NULL;
 
     hash_val = (* ht->hash_function)(key) % ht->nbuckets;
-
     /* Scan bucket[hash_val] for key */
-    for (prev=NULL,curr=ht->buckets[hash_val]; curr != NULL; prev=curr, curr=curr->next)
-        /* If key found, remove node from list, free old key, and setup olddata for the return */
-        if ( ht->hash_key_compare(curr->key, key)) {
-            if (olddata != NULL) {
-				//TODO: MODIFY ALL FUNCTIONS TO TAKE len INTO ACCOUNT
-				if(curr->len == newLen)
-				{
-					*olddata = curr->data;
-					free(curr->key);
-				}
-				else
-				{
-					return NULL;
-				}
+    for (curr=ht->buckets[hash_val]; curr != NULL; curr=curr->next)
+    {
+        /* If key found, remove node from list, free old key, and setup olddata for the return */        
+        if ( ht->hash_key_compare(curr->key, key)) 
+        {
+            if (tmp == *(unsigned int*)curr->len) 
+            {
+				if(curr->data != NULL)
+					free(curr->data);
+				newdata = calloc(tmp, sizeof(char));
+				memcpy(newdata, data, sizeof(char)*tmp);
+				curr->data = newdata;
             }
-
-            if (prev == NULL)
-                ht->buckets[hash_val] = curr->next;
-            else
-                prev->next = curr->next;
+			else
+			{
+				errno = EINVAL;
+				return NULL;
+			}
         }
-
-    /* Since key was either not found, or found-and-removed, create and prepend new node */
-    curr = (icl_entry_t*)malloc(sizeof(icl_entry_t));
-    if(curr == NULL) return NULL; /* out of memory */
-
-    curr->key = key;
-    curr->data = data;
-    curr->next = ht->buckets[hash_val]; /* add at start */
-
-    ht->buckets[hash_val] = curr;
-    ht->nentries++;
-
-    if(olddata!=NULL && *olddata!=NULL)
-        *olddata = NULL;
-
+    }
+       
     return curr;
 }
 
