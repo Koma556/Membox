@@ -111,7 +111,7 @@ int statOP(int opResult, op_t op, int length){
 		{		
 			case PUT_OP:
 			{
-				mboxStats.nget++;
+				mboxStats.nput++;
 				mboxStats.current_objects++;
 				mboxStats.current_size += length*sizeof(char);
 				if(mboxStats.max_size < mboxStats.current_size)
@@ -144,15 +144,35 @@ int statOP(int opResult, op_t op, int length){
 	{
 		switch(op)
 		{
-			case PUT_OP: mboxStats.nget_failed++;
+			case PUT_OP: 
+			{
+				mboxStats.nput++;
+				mboxStats.nput_failed++;
+			}
 			break;
-			case UPDATE_OP: mboxStats.nupdate_failed++;
+			case UPDATE_OP: 
+			{
+				mboxStats.nupdate++;
+				mboxStats.nupdate_failed++;
+			}
 			break;
-			case LOCK_OP: mboxStats.nlock_failed++;
+			case LOCK_OP: 
+			{
+				mboxStats.nlock++;
+				mboxStats.nlock_failed++;
+			}
 			break;
-			case GET_OP: mboxStats.nget_failed++;
+			case GET_OP: 
+			{
+				mboxStats.nget++;
+				mboxStats.nget++mboxStats.nget_failed++;
+			}
 			break;
-			case REMOVE_OP: mboxStats.nremove_failed++;
+			case REMOVE_OP: 
+			{
+				mboxStats.nremove++;
+				mboxStats.nremove_failed++;
+			}
 			break;
 			default:
 			{
