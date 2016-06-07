@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdint.h>
-#include </home/groot/Downloads/Git/Membox/icl_hash.h>
-//#include </home/groot/Downloads/Git/Membox/icl_hash.c>
+#include "icl_hash.h"
+//#include "icl_hash.c"
 
 /* ---------------------------------------------------------------------- 
  * Hashing funtions

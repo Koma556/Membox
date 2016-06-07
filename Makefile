@@ -43,17 +43,18 @@ LIBS            = -pthread
 
 # aggiungere qui altri targets se necessario
 TARGETS		= membox        \
-		  client        \
-		  test_hash
+		  client        
 
 # aggiungere qui i file oggetto da compilare
-OBJECTS		= 
+OBJECTS		= connections.o	\
+		  icl_hash.o
 
 # aggiungere qui gli altri include 
 INCLUDE_FILES   = connections.h \
 		  message.h     \
 		  ops.h	  	\
-		  stats.h
+		  stats.h	\
+		  icl_hash.h	
 
 
 .PHONY: all clean cleanall test1 test2 test3 test4 test5 test6 test7 consegna

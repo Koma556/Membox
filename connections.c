@@ -5,16 +5,19 @@
  * Docenti: Pelagatti, Torquati
  * 
  */
+ /*
 #ifndef CONNECTIONS_H_
 #define CONNECTIONS_H_
-
+*/
 #define MAX_RETRIES     10
 #define MAX_SLEEPING     3
 #if !defined(UNIX_PATH_MAX)
 #define UNIX_PATH_MAX  64
 #endif
 
-#include </home/groot/Downloads/Git/Membox/message.h> //TEST SU IDE RIMUOVERE PER IL MAKE
+//#include "message.h"
+#include "ops.h"
+#include "connections.h"
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h> 
@@ -121,6 +124,7 @@ int readHeader(long fd, message_hdr_t *hdr){
 	if((storage = calloc(1, sizeof(op_t)+sizeof(membox_key_t))) == NULL)
 	{
 		errno = ENOMEM; 
+		printf("[readHeader] err1\n");
 		return -1;
 	}
 	
@@ -129,6 +133,7 @@ int readHeader(long fd, message_hdr_t *hdr){
 	if(ck <= 0)
 	{	
 		free(storage);
+		printf("[readHeader] err2: ck = %d\n", ck);
 		return -1;
 	}
 		
@@ -177,7 +182,7 @@ int readData(long fd, message_data_t *data){
 		return -1;
 	}
 	
-	//leggo data dal socket 
+	// leggo data dal socket 
 	ck = read(fd, storage, (sizeof(char)*length));
 	if(ck < 0)
 	{	
@@ -199,20 +204,7 @@ int readData(long fd, message_data_t *data){
 
 
 /* da completare da parte dello studente con altri metodi di interfaccia */
-
-
-
-// ------- client side ------
-/**
- * @function sendRequest
- * @brief Invia un messaggio di richiesta al server membox
- *
- * @param fd     descrittore della connessione
- * @param msg    puntatore al messaggio da inviare
- *
- * @return 0 in caso di successo -1 in caso di errore
- */
-int sendRequest(long fd, message_t *msg){
+int sendHeader(long fd, message_t *msg){
 	char* storage;
 	
 	//preparo hdr
@@ -226,14 +218,76 @@ int sendRequest(long fd, message_t *msg){
 	//mando hdr
 	if((write(fd, storage, sizeof(op_t)+sizeof(membox_key_t))) == -1){
 		free(storage);
+		printf("err1\n");
 		return -1;
 	}
+	
+	free(storage);
+	return 0;
+}
+
+int sendData(long fd, message_t *msg){
+	char* storage;
+	
+	//preparo data
+	if((storage = calloc(msg->data.len, (sizeof(unsigned int)+sizeof(char)))) == NULL){
+		errno = ENOMEM; 
+		free(storage);
+		printf("err2\n");
+		return -1;
+	}
+		
+	memcpy(storage, &msg->data.len, sizeof(unsigned int));
+	memcpy(storage+sizeof(op_t), msg->data.buf, sizeof(char)*msg->data.len);
+	
+	//mando data
+	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){
+		free(storage);
+		printf("err3\n");
+		return -1;
+	}
+	free(storage);
+	
+	return 0;
+}
+
+// ------- client side ------
+/**
+ * @function sendRequest
+ * @brief Invia un messaggio di richiesta al server membox
+ *
+ * @param fd     descrittore della connessione
+ * @param msg    puntatore al messaggio da inviare
+ *
+ * @return 0 in caso di successo -1 in caso di errore
+ */
+int sendRequest(long fd, message_t *msg){
+	char* storage;
+	printf("[sendRequest] inizio\n");
+	//preparo hdr
+	if((storage = calloc(1, sizeof(op_t)+sizeof(membox_key_t))) == NULL){
+		errno = ENOMEM; 
+		printf("[sendRequest] ENOMEM\n");
+		return -1;
+	}
+	memcpy(storage, &msg->hdr.op, sizeof(op_t));
+	printf("[sendRequest] copiato hdr.op\n");
+	memcpy(storage+sizeof(op_t), &msg->hdr.key, sizeof(membox_key_t));
+	printf("[sendRequest] copiato hdr.key\n");
+	//mando hdr
+	if((write(fd, storage, sizeof(op_t)+sizeof(membox_key_t))) == -1){
+		free(storage);
+		printf("err1\n");
+		return -1;
+	}
+	printf("[sendRequest] written to socket\n");
 	free(storage);
 	
 	//preparo data
 	if((storage = calloc(msg->data.len, (sizeof(unsigned int)+sizeof(char)))) == NULL){
 		errno = ENOMEM; 
 		free(storage);
+		printf("err2\n");
 		return -1;
 	}
 		
@@ -242,6 +296,7 @@ int sendRequest(long fd, message_t *msg){
 	//mando data
 	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){
 		free(storage);
+		printf("err3\n");
 		return -1;
 	}
 	free(storage);
@@ -259,9 +314,12 @@ int sendRequest(long fd, message_t *msg){
  * @return 0 in caso di successo -1 in caso di errore
  */
 int readReply(long fd, message_t *msg){
-		if(readHeader(fd, &msg->hdr) || readData(fd, &msg->data) != 0)
+		if(readHeader(fd, &msg->hdr) != 0)
 			return -1;
+		if(msg->hdr.op == GET_OP)
+			if(readData(fd, &msg->data) != 0)
+				return -1;
 		return 0;
 }
 
-#endif /* CONNECTIONS_H_ */
+//#endif /* CONNECTIONS_H_ */

@@ -1,0 +1,43 @@
+make cleanall
+make[1]: Entering directory `/home/groot/Downloads/Git/Membox'
+rm -f membox client        
+\rm -f *.o *~ libmbox.a valgrind_out /tmp/mbox_stats.txt /tmp/mbox_socket
+make[1]: Leaving directory `/home/groot/Downloads/Git/Membox'
+make all
+make[1]: Entering directory `/home/groot/Downloads/Git/Membox'
+gcc -std=c99 -Wall -pedantic -g -DMAKE_VALGRIND_HAPPY -I.  -c -o membox.o membox.c
+gcc -std=c99 -Wall -pedantic -g -DMAKE_VALGRIND_HAPPY -I.  -c -o connections.o connections.c
+gcc -std=c99 -Wall -pedantic -g -DMAKE_VALGRIND_HAPPY -I.  -c -o icl_hash.o icl_hash.c
+ar rvs libmbox.a connections.o icl_hash.o
+a - connections.o
+a - icl_hash.o
+gcc -std=c99 -Wall -pedantic -g -DMAKE_VALGRIND_HAPPY -I.  -L. -o membox membox.o libmbox.a connections.h message.h ops.h stats.h icl_hash.h -pthread
+gcc -std=c99 -Wall -pedantic -g -DMAKE_VALGRIND_HAPPY -I.  -c -o client.o client.c
+gcc -std=c99 -Wall -pedantic -g -DMAKE_VALGRIND_HAPPY -I.  -L. -o client client.o connections.o message.h -pthread
+make[1]: Leaving directory `/home/groot/Downloads/Git/Membox'
+./membox -f DATA/membox.conf1&
+./client -l /tmp/mbox_socket -c 0:0:8192
+[sendRequest] msg->hdr.op: 0	msg->hdr.key: 0	msg->data.len: 0
+/tmp/mbox_socket	32	6	0	0	0	/tmp/mbox_stats.txt
+thrds alloc'd
+connectionQueue alloc'd
+dataTable alloc'd
+statfile open
+Socket open.
+I'm thread 1
+I'm thread 2
+I'm thread 3
+I'm thread 4
+I'm thread 5
+I'm thread 6
+Producer has accepted a new socket!
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 8192
+[selectorOP] msg->hdr.key: 0
+[sendRequest] msg->hdr.op: 11	msg->hdr.key: 0	msg->data.len: 11
+Successo!
+./client -l /tmp/mbox_socket -c 0:1:8192
+[sendRequest] msg->hdr.op: 1	msg->hdr.key: 0	msg->data.len: 1
+[readHeader] err2: ck = 0

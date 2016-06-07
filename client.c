@@ -36,8 +36,8 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include </home/groot/Downloads/Git/Membox/connections.c>
-#include </home/groot/Downloads/Git/Membox/ops.h>
+#include <connections.h>
+#include <ops.h>
 
 
 typedef struct {
@@ -58,22 +58,20 @@ static void use(const char * filename) {
 
 
 static void init_data(membox_key_t *key, char *data, unsigned int len) {
-    int i;
     long *p = (long*)data;
-    for(i=0;i<(len/sizeof(unsigned long));++i) setKey((membox_key_t*)&p[i], key);
+    for(int i=0;i<(len/sizeof(unsigned long));++i) setKey((membox_key_t*)&p[i], key);
     int r = len % sizeof(unsigned long);
-    for(i=1;i<=r;++i) data[len-i] = 0x01;
+    for(int i=1;i<=r;++i) data[len-i] = 0x01;
 }
 
 static int check_data(membox_key_t *key, char *data, unsigned int len) {
-    int i;
     long *p = (long*)data;
-    for(i=0;i<(len/sizeof(unsigned long));++i)
+    for(int i=0;i<(len/sizeof(unsigned long));++i)
 	if (p[i] != *key) {
 	    return -1;
 	}
     int r = len % sizeof(unsigned long);
-    for(i=1;i<=r;++i) 
+    for(int i=1;i<=r;++i) 
 	if (data[len-i] != 0x01) return -1;
     return 0;
 }
@@ -179,7 +177,7 @@ static int execute_op(int connfd, operation_t *o) {
 
 int main(int argc, char *argv[]) {
     const char optstring[] = "l:c:s:h";
-    int i, optc;
+    int optc;
     char *spath = NULL;
     operation_t *ops = NULL;
     long msleep=0;
@@ -268,7 +266,7 @@ int main(int argc, char *argv[]) {
     struct timespec req = { msleep/1000, (msleep%1000)*1000000L };  
   
     int r=0;
-    for(i=0;i<k;++i) {
+    for(int i=0;i<k;++i) {
 	r = execute_op(connfd, &ops[i]);
 	if (r == 0)  printf("Successo!\n");
 	else break;  // non appena una operazione fallisce esco

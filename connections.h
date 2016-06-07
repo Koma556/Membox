@@ -14,7 +14,7 @@
 #define UNIX_PATH_MAX  64
 #endif
 
-#include </home/groot/Downloads/Git/Membox/message.h> 
+#include "message.h" 
 
 /**
  * @file  connection.h
@@ -71,8 +71,8 @@ int readData(long fd, message_data_t *data);
 
 
 /* da completare da parte dello studente con altri metodi di interfaccia */
-
-
+int sendHeader(long fd, message_t *msg);
+int sendData(long fd, message_t *msg);
 
 // ------- client side ------
 /**
