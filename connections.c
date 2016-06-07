@@ -155,7 +155,7 @@ int readHeader(long fd, message_hdr_t *hdr){
  * @return 0 in caso di successo -1 in caso di errore
  */
 int readData(long fd, message_data_t *data){
-	int ck = 0;
+	int ck = 0, cnt = 0;
 	unsigned int length;
 	char *storage;
 	
@@ -183,7 +183,9 @@ int readData(long fd, message_data_t *data){
 	}
 	
 	// leggo data dal socket 
+	printf("[readData] sto per leggere il buffer\n");
 	ck = read(fd, storage, (sizeof(char)*length));
+	cnt += ck;
 	if(ck < 0)
 	{	
 		if(storage != NULL)
@@ -191,13 +193,22 @@ int readData(long fd, message_data_t *data){
 		return -1;
 	}
 	// in caso la read non sia più atomica
-	else if(ck > 0 && ck < length)
+	else if(ck > 0)
 	{
-		do
-			ck = read(fd, storage+(sizeof(char)*ck), (sizeof(char)*(length-ck)));
-		while(ck != 0);
+		while (cnt < length)
+		{
+			ck = read(fd, storage + cnt*sizeof(char), length - cnt);
+			if (ck < 1 )
+			{
+				free(storage);
+				return -1;
+			}
+
+			cnt += ck;
+		}
 	}
 	data->buf = storage;
+	printf("[readData] finito di leggere il buffer\n");
 	
 	return 0;
 }
@@ -263,6 +274,7 @@ int sendData(long fd, message_t *msg){
  */
 int sendRequest(long fd, message_t *msg){
 	char* storage;
+	
 	printf("[sendRequest] inizio\n");
 	//preparo hdr
 	if((storage = calloc(1, sizeof(op_t)+sizeof(membox_key_t))) == NULL){
@@ -293,12 +305,14 @@ int sendRequest(long fd, message_t *msg){
 		
 	memcpy(storage, &msg->data.len, sizeof(unsigned int));
 	memcpy(storage+sizeof(op_t), msg->data.buf, sizeof(char)*msg->data.len);
+	
 	//mando data
 	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){
 		free(storage);
 		printf("err3\n");
 		return -1;
 	}
+	printf("[sendRequest] done writing, closing up...\n");
 	free(storage);
 	
 	return 0;
