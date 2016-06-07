@@ -38,9 +38,9 @@ typedef struct listS{
 	struct listS* next;
 }listSimple;
 
-static char *socketpath;
+static char *socketpath, *statfilepath;
 static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize;
-static int overlord = 1, activethreads = 0, queueLength = 0, count = 0, replock = -1;
+static int overlord = 1, activethreads = 0, queueLength = 0, replock = -1;
 static FILE* descriptr;
 // Struttura dati condivisa
 static icl_hash_t* dataTable;
@@ -78,6 +78,25 @@ static inline unsigned int ulong_hash_function( void *key ) {
 static inline int ulong_key_compare( void *key1, void *key2  ) {
     return ( *(unsigned long*)key1 == *(unsigned long*)key2 );
 }
+
+void printLog(){
+	int err2;
+	
+	if(statfilepath != NULL)
+	{
+		err2 = -1;
+		//printList(head);
+		do
+			{
+			if((err2 = pthread_mutex_lock(&stCO)) == 0)
+				printStats(descriptr);
+			pthread_mutex_unlock(&stCO);
+		}
+		while(err2 != 0);
+		
+	}
+}
+
 /**
  * @function statOP
  * @brief increases the mboxStats values tied to the operations
@@ -300,7 +319,7 @@ void cleaninData(void* arg){
  * @param msg	puntatore al messaggio gia' spacchettato 
  * @param socID ID del socket sul quale sono connesso
  */
-void selectorOP(message_t *msg, int socID){
+void selectorOP(message_t *msg, int socID, unsigned int oldop){
 	int err, result = 0;
 	unsigned int *newkey;
     message_data_t *newdata, *olddata = NULL;
@@ -522,7 +541,7 @@ void selectorOP(message_t *msg, int socID){
 	{
 		if((err = pthread_mutex_lock(&stCO)) == 0)
 		{
-			statOP(result, msg->hdr.op, msg->data.len);
+			statOP(result, oldop, msg->data.len);
 			pthread_mutex_unlock(&stCO);
 		}
 	}
@@ -1009,7 +1028,7 @@ void* dealmaker (void* args){
 				break;
 			printf("[dealmaker%d] msg->hdr.op: %u\t msg->data.len: %u\n", thrdnumber, messg->hdr.op, messg->data.len);
 			tmpop = messg->hdr.op;
-			selectorOP(messg, soktAcc);
+			selectorOP(messg, soktAcc, tmpop);
 			if(sendReply(tmpop, messg, soktAcc) != 0)
 					printf("[dealmaker%d] sendReply returned failure state\n", thrdnumber);
 			//free(messg->data.buf);
@@ -1030,6 +1049,7 @@ void* dealmaker (void* args){
 			}
 		}
 		while(err2 != 0);
+		printLog();
 	}
 	initActivity(-1);
 	pthread_exit(NULL);
@@ -1211,8 +1231,8 @@ void* dispatcher(void* args){
 }
 
 int main(int argc, char *argv[]) {
-	int config[5], socID, err, err2, i = 0;
-	char *statfilepath, *configfilepath;
+	int config[5], socID, err, i = 0;
+	char *configfilepath;
 	pthread_t* thrds, disp;
 	FILE *fp;
 	
@@ -1315,23 +1335,10 @@ int main(int argc, char *argv[]) {
 	}
 	
 	//TODO: gently close all threads
-	getchar();
 	while(1)
 		sleep(1);
+	fclose(descriptr);
 	//TODO: remove this block, statfile has to be printed only in case of SIGUSR2 signal
-	if(statfilepath != NULL)
-	{
-		err2 = -1;
-		//printList(head);
-		do
-			{
-			if((err2 = pthread_mutex_lock(&stCO)) == 0)
-				printStats(descriptr);
-			pthread_mutex_unlock(&stCO);
-		}
-		while(err2 != 0);
-		fclose(descriptr);
-	}
 		
 	icl_hash_destroy(dataTable, cleaninFun, cleaninData);
 	free(statfilepath);
