@@ -203,27 +203,14 @@ int statConnections(int side){
 
 int sendReply(op_t oldop, message_t *msg, int socID){
 	printf("[sendReply] oldop: %u\treply: %u\tlength: %u\n", (unsigned int)oldop, (unsigned int)msg->hdr.op, (unsigned int)msg->data.len);
-	switch(oldop)
+	if(oldop == GET_OP || oldop == OP_FAIL)
 	{
-		case PUT_OP: return sendHeader(socID, msg);
-		break;
-		case UPDATE_OP: return sendHeader(socID, msg);
-		break;
-		case GET_OP:
-		{
-			if(sendHeader(socID, msg) < 0) return -1;
-			if(sendData(socID, msg) < 0) return -1;
-			return 0;
-		}
-		case REMOVE_OP: return sendHeader(socID, msg);
-		break;
-		case LOCK_OP: return sendHeader(socID, msg);
-		break;
-		case UNLOCK_OP: return sendHeader(socID, msg);
-		break;
-		default: return -1;
+		if(sendHeader(socID, msg) < 0) return -1;
+		if(sendData(socID, msg) < 0) return -1;
+		return 0;
 	}
-	return -1;
+	else
+		return sendHeader(socID, msg);
 }
 
 char* readLocation(char** args, int argc){
@@ -336,24 +323,34 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 		}
 	}
 	while(err != 0);
-	
+	//TODO: jump over this
 	switch(msg->hdr.op)
 	{
 		case PUT_OP:
 		{
-			if(maxobjsize != 0 && msg->data.len > maxobjsize)
-			{					
-				msg->hdr.op = OP_PUT_SIZE;
-				result = 1;
+			printf("[selectorOP] entering PUT_OP\n");
+			do
+			{
+				if((err = pthread_mutex_lock(&stCO)) == 0)
+				{
+					if(maxobjsize != 0 && msg->data.len > maxobjsize)
+					{					
+						msg->hdr.op = OP_PUT_SIZE;
+						result = 1;
+					}
+					else if(storagebyte != 0 && msg->data.len + mboxStats.current_size > storagebyte){
+						msg->hdr.op = OP_PUT_REPOSIZE;
+						result = 1;
+					}
+					else if(storagesize != 0 && mboxStats.current_objects >= storagesize){
+						msg->hdr.op = OP_PUT_TOOMANY;
+						result = 1;
+					}
+					pthread_mutex_unlock(&stCO);
+				}
 			}
-			else if(storagebyte != 0 && msg->data.len + mboxStats.current_size > storagebyte){
-				msg->hdr.op = OP_PUT_REPOSIZE;
-				result = 1;
-			}
-			else if(storagesize != 0 && mboxStats.current_objects == storagesize){
-				msg->hdr.op = OP_PUT_TOOMANY;
-				result = 1;
-			}
+			while(err != 0);
+			
 			if(result != 1)
 			{
 				newkey = calloc(1, sizeof(unsigned int*));
@@ -368,13 +365,16 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 					{
 						if((icl_hash_insert(dataTable, newkey, (void*)newdata)) == NULL)
 						{
-							pthread_mutex_unlock(&dataMUTEX);
 							// dato che non posso modificare le funzioni in icl_hash, cerco di nuovo
 							if(icl_hash_find(dataTable, newkey) != NULL)
 								msg->hdr.op = OP_PUT_ALREADY;
 							else
+							{
 								// not enough memory
+								printf("OHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIO\n");
 								msg->hdr.op = OP_FAIL; 
+							}
+							pthread_mutex_unlock(&dataMUTEX);
 							result = 1;
 							free(newdata->buf);
 							free(newdata);
@@ -385,7 +385,7 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 							pthread_mutex_unlock(&dataMUTEX);
 							msg->hdr.op = OP_OK;
 							result = 0;
-							printf("ho inserito\n");
+							printf("[selectorOP] ho inserito\n");
 						}
 						
 					}
@@ -1032,11 +1032,11 @@ void* dealmaker (void* args){
 			selectorOP(messg, soktAcc, tmpop);
 			if(sendReply(tmpop, messg, soktAcc) != 0)
 					printf("[dealmaker%d] sendReply returned failure state\n", thrdnumber);
-			//free(messg->data.buf);
-			//free(messg);
+			free(messg);
 			printf("[dealmaker%d] messg free'd\n", thrdnumber);
 		}
 		if(replock == soktAcc) replock = -1;
+		close(soktAcc);
 		do
 		{
 			if((err2 = pthread_mutex_lock(&stCO)) == 0)
@@ -1189,43 +1189,48 @@ void *dealmaker(void* arg){
 */
 
 void* dispatcher(void* args){
-	int socID = (intptr_t) args, err3;
+	int socID = (intptr_t) args, err3, tmpSockt;
 	int err = -1;
+	message_t *msg;
+	
 	while(overlord)
 	{
-		if((err = pthread_mutex_lock(&coQU)) == 0)
-		{
-			//printf("Producer has mutex\n");
-			if(queueLength + mboxStats.concurrent_connections < maxconnections)
+		if((tmpSockt = accept(socID, NULL, 0)) != -1)
+		{				
+			do
 			{
-				pthread_mutex_unlock(&coQU);
-				if((connectionQueue->sokAddr = accept(socID, NULL, 0)) != -1)
-				{	
-					printf("Producer has accepted a new socket!\n");
-					err3 = -1;
-					do
+				if((err = pthread_mutex_lock(&coQU)) == 0)
+				{
+					//printf("Producer has mutex\n");
+					if(queueLength + mboxStats.concurrent_connections < maxconnections)
 					{
-						if((err3 = pthread_mutex_lock(&coQU)) == 0)
-						{
-							printf("Producer has coQU mutex to append socID to the queue\n");
-							connectionQueue->next = calloc(1, sizeof(listSimple));
-							queueLength++;
-							connectionQueue = connectionQueue->next;
-							connectionQueue->sokAddr = -1;
-							connectionQueue->next = NULL;
-							pthread_cond_signal(&coQUwait);
-							pthread_mutex_unlock(&coQU);
-							printf("producer broadcasted\n");
-						}
+						printf("Producer has coQU mutex to append socID to the queue\n");
+						connectionQueue->sokAddr = tmpSockt;
+						connectionQueue->next = calloc(1, sizeof(listSimple));
+						queueLength++;
+						connectionQueue = connectionQueue->next;
+						connectionQueue->sokAddr = -1;
+						connectionQueue->next = NULL;
+						pthread_cond_signal(&coQUwait);
+						pthread_mutex_unlock(&coQU);
+						printf("producer broadcasted\n");
 					}
-					while(err3 != 0);
+					else
+					{
+						pthread_mutex_unlock(&coQU);
+						msg = calloc(1, sizeof(message_t));
+						msg->hdr.op = OP_FAIL;
+						msg->hdr.key = -1;
+						msg->data.buf = calloc(19, sizeof(char));
+						sprintf(msg->data.buf, "connection refused\0");
+						sendReply(msg->hdr.op, msg, tmpSockt);
+						free(msg->data.buf);
+						free(msg);
+						close(tmpSockt);
+					}
 				}
 			}
-			else
-			{
-				pthread_mutex_unlock(&coQU);
-				printf("Producer released mutex because queue is full\n");
-			}
+			while(err != 0);
 		}
 	}
 	pthread_exit(NULL);
@@ -1244,6 +1249,7 @@ int main(int argc, char *argv[]) {
 	// apro il file di configurazione
 	configfilepath = readLocation(argv, argc);
 	fp = fopen(configfilepath, "r");
+	
 	if(fp == NULL) 
 	{
 		errno = EIO;

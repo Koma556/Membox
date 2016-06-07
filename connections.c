@@ -160,15 +160,9 @@ int readData(long fd, message_data_t *data){
 	char *storage;
 	
 	//leggo dimensione di data
-	/*
-	if((storage = (char*)malloc(sizeof(unsigned int))) == NULL){
-		errno = ENOMEM; 
-		return -1;
-	}*/
 	ck = read(fd, &length, sizeof(unsigned int));
 	if(ck <= 0)
 	{	
-		//free(storage);
 		return -1;
 	}
 		

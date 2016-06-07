@@ -33,6 +33,7 @@ fi
 # PUT
 for ((i=0;i<1024;++i)); do 
     ./client -l $1 -c $i:0:63
+    echo $i
     if [[ $? != 0 ]]; then
 	exit 1
     fi
@@ -64,7 +65,6 @@ if [[ $((256-$?)) != $OP_UPDATE_SIZE ]]; then
     exit 1
 fi
 
-
 # REMOVE
 for ((i=0;i<1024;++i)); do 
     ./client -l $1 -c $i:3:0
@@ -74,10 +74,10 @@ for ((i=0;i<1024;++i)); do
 done
 
 # testing MaxConnections
-./client -l $1 -s 1000 -c 0:0:1024 -c 1:0:1024 -c 2:0:1024 -c 0:2:0 -c 1:2:0 -c 2:2:0  &
-./client -l $1 -s 1000 -c 3:0:1024 -c 4:0:1024 -c 5:0:1024 -c 3:2:0 -c 4:2:0 -c 5:2:0  &  
-./client -l $1 -s 1000 -c 6:0:1024 -c 7:0:1024 -c 8:0:1024 -c 6:2:0 -c 7:2:0 -c 8:2:0  &
-./client -l $1 -s 1000 -c 9:0:1024 -c 10:0:1024 -c 11:0:1024 -c 9:2:0 -c 10:2:0 -c 11:2:0  &
+./client -l /tmp/mbox_socket -s 1000 -c 0:0:1024 -c 1:0:1024 -c 2:0:1024 -c 0:2:0 -c 1:2:0 -c 2:2:0  & 
+./client -l /tmp/mbox_socket -s 1000 -c 3:0:1024 -c 4:0:1024 -c 5:0:1024 -c 3:2:0 -c 4:2:0 -c 5:2:0  &  
+./client -l /tmp/mbox_socket -s 1000 -c 6:0:1024 -c 7:0:1024 -c 8:0:1024 -c 6:2:0 -c 7:2:0 -c 8:2:0  & 
+./client -l /tmp/mbox_socket -s 1000 -c 9:0:1024 -c 10:0:1024 -c 11:0:1024 -c 9:2:0 -c 10:2:0 -c 11:2:0  &
 
 # invio SIGUSR1 in modo che il server faccia il dump delle statistiche
 killall -USR1 membox

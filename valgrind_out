@@ -1,0 +1,1598 @@
+==7261== Memcheck, a memory error detector
+==7261== Copyright (C) 2002-2013, and GNU GPL'd, by Julian Seward et al.
+==7261== Using Valgrind-3.10.1 and LibVEX; rerun with -h for copyright info
+==7261== Command: ./membox -f DATA/membox.conf1
+==7261== 
+/tmp/mbox_socket	32	6	0	0	0	/tmp/mbox_stats.txt
+thrds alloc'd
+connectionQueue alloc'd
+dataTable alloc'd
+statfile open
+Socket open.
+I'm thread 1
+I'm thread 2
+I'm thread 3
+I'm thread 4
+I'm thread 5
+I'm thread 6
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 16
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 16
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 32
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 32
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 48
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 48
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 64
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 64
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 80
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 80
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 96
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 96
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 112
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 112
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 128
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 128
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 144
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 144
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 160
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 160
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 176
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 176
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 192
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 192
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 208
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 208
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 224
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 224
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 240
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 240
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 256
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 256
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 272
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 272
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 288
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 288
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 304
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 304
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 320
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 320
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 336
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 336
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 352
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 352
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 368
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 368
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 384
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 384
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 400
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 400
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 416
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 416
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 432
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 432
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 448
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 448
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 464
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 464
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 480
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 480
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 496
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 496
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 512
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 512
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 528
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 528
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 544
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 544
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 560
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 560
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 576
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 576
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 592
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 592
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 608
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 608
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 624
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 624
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 640
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 640
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 656
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 656
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 672
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 672
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 688
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 688
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 704
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 704
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 720
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 720
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 736
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 736
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 752
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 752
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 768
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 768
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 784
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 784
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 800
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 800
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 816
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 816
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 832
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 832
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 848
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 848
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 864
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 864
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 880
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 880
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 896
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 896
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 912
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 912
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 928
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 928
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 944
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 944
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 960
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 960
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 976
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 976
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 992
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 992
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1008
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1008
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1024
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1024
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 1040
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1040
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 1056
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1056
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 1072
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1072
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 1088
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1088
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1104
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1104
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1120
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1120
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 1136
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1136
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 1152
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1152
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 1168
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1168
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 1184
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1184
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1200
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1200
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1216
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1216
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 1232
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1232
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 1248
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1248
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 1264
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1264
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 1280
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1280
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1296
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1296
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1312
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1312
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 1328
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1328
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 1344
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1344
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 1360
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1360
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 1376
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1376
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1392
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1392
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1408
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1408
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 1424
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1424
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 1440
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1440
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 1456
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1456
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 1472
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1472
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1488
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1488
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1504
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1504
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 1520
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1520
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 1536
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1536
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 1552
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1552
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 1568
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1568
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1584
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1584
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1600
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1600
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 1616
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1616
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 1632
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1632
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 1648
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1648
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 1664
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1664
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1680
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1680
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1696
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1696
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 1712
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1712
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 1728
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1728
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 1744
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1744
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 1760
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1760
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1776
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1776
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1792
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1792
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 1808
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1808
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 1824
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1824
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 1840
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1840
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 1856
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1856
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1872
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1872
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1888
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1888
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 1904
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1904
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 1920
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1920
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 1936
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1936
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 1952
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1952
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker2] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker2] msg->hdr.op: 0	 msg->data.len: 1968
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1968
+[dealmaker2] messg free'd
+[dealmaker2] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker3] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker3] msg->hdr.op: 0	 msg->data.len: 1984
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 1984
+[dealmaker3] messg free'd
+[dealmaker3] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker4] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker4] msg->hdr.op: 0	 msg->data.len: 2000
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 2000
+[dealmaker4] messg free'd
+[dealmaker4] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker5] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker5] msg->hdr.op: 0	 msg->data.len: 2016
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 2016
+[dealmaker5] messg free'd
+[dealmaker5] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker1] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker1] msg->hdr.op: 0	 msg->data.len: 2032
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 2032
+[dealmaker1] messg free'd
+[dealmaker1] messg alloc'd
+[readHeader] err2: ck = 0
+Producer has coQU mutex to append socID to the queue
+producer broadcasted
+[dealmaker0] messg alloc'd
+[readData] sto per leggere il buffer
+[readData] finito di leggere il buffer
+[dealmaker0] msg->hdr.op: 0	 msg->data.len: 2048
+[selectorOP] entering PUT_OP
+[selectorOP] ho inserito
+[sendReply] oldop: 0	reply: 11	length: 2048
+[dealmaker0] messg free'd
+[dealmaker0] messg alloc'd
+[readHeader] err2: ck = 0
+==7261== 
+==7261== HEAP SUMMARY:
+==7261==     in use at exit: 285,733 bytes in 782 blocks
+==7261==   total heap usage: 1,426 allocs, 644 frees, 297,325 bytes allocated
+==7261== 
+==7261== 272 bytes in 1 blocks are possibly lost in loss record 7 of 16
+==7261==    at 0x4C2CC70: calloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==7261==    by 0x4012E54: allocate_dtv (dl-tls.c:296)
+==7261==    by 0x4012E54: _dl_allocate_tls (dl-tls.c:460)
+==7261==    by 0x4E3FDA0: allocate_stack (allocatestack.c:589)
+==7261==    by 0x4E3FDA0: pthread_create@@GLIBC_2.2.5 (pthread_create.c:500)
+==7261==    by 0x4029EB: main (membox.c:1328)
+==7261== 
+==7261== 1,632 bytes in 6 blocks are possibly lost in loss record 10 of 16
+==7261==    at 0x4C2CC70: calloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==7261==    by 0x4012E54: allocate_dtv (dl-tls.c:296)
+==7261==    by 0x4012E54: _dl_allocate_tls (dl-tls.c:460)
+==7261==    by 0x4E3FDA0: allocate_stack (allocatestack.c:589)
+==7261==    by 0x4E3FDA0: pthread_create@@GLIBC_2.2.5 (pthread_create.c:500)
+==7261==    by 0x402A3E: main (membox.c:1337)
+==7261== 
+==7261== 3,904 bytes in 122 blocks are definitely lost in loss record 13 of 16
+==7261==    at 0x4C2CC70: calloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==7261==    by 0x4022B5: dealmaker (membox.c:1019)
+==7261==    by 0x4E3F181: start_thread (pthread_create.c:312)
+==7261==    by 0x514F47C: clone (clone.S:111)
+==7261== 
+==7261== 132,096 bytes in 128 blocks are definitely lost in loss record 16 of 16
+==7261==    at 0x4C2CC70: calloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==7261==    by 0x402E42: readData (connections.c:173)
+==7261==    by 0x402328: dealmaker (membox.c:1028)
+==7261==    by 0x4E3F181: start_thread (pthread_create.c:312)
+==7261==    by 0x514F47C: clone (clone.S:111)
+==7261== 
+==7261== LEAK SUMMARY:
+==7261==    definitely lost: 136,000 bytes in 250 blocks
+==7261==    indirectly lost: 0 bytes in 0 blocks
+==7261==      possibly lost: 1,904 bytes in 7 blocks
+==7261==    still reachable: 147,829 bytes in 525 blocks
+==7261==         suppressed: 0 bytes in 0 blocks
+==7261== Reachable blocks (those to which a pointer was found) are not shown.
+==7261== To see them, rerun with: --leak-check=full --show-leak-kinds=all
+==7261== 
+==7261== For counts of detected and suppressed errors, rerun with: -v
+==7261== ERROR SUMMARY: 4 errors from 4 contexts (suppressed: 0 from 0)

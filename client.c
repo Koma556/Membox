@@ -105,16 +105,16 @@ static int execute_op(int connfd, operation_t *o) {
     }
     if (msg.data.buf) free(msg.data.buf);
     if (readHeader(connfd, &msg.hdr) == -1) {
-	perror("reply header");
+	printf("[%d]reply header: %s", (int)getpid(), strerror(errno));
 	return -1;
     }
     switch(msg.hdr.op) {
     case OP_OK: break;
     case OP_FAIL: {
 	if (msg.data.buf) 
-	    fprintf(stderr, "Operation failed: %s\n", msg.data.buf);
+	    fprintf(stderr, "[%d]Operation failed: %s\n", (int)getpid(), msg.data.buf);
 	else
-	    fprintf(stderr, "Operation failed\n");
+	    fprintf(stderr, "[%d]Operation failed\n", (int)getpid());
 	return -OP_FAIL;
     };
     case OP_PUT_ALREADY: {
@@ -268,7 +268,7 @@ int main(int argc, char *argv[]) {
     int r=0;
     for(int i=0;i<k;++i) {
 	r = execute_op(connfd, &ops[i]);
-	if (r == 0)  printf("Successo!\n");
+	if (r == 0)  printf("[%d]Successo op %d of %d!\n", (int)getpid(), i+1, k);
 	else break;  // non appena una operazione fallisce esco
 
 	// tra una operazione e l'altra devo aspettare msleep millisecondi
