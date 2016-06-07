@@ -229,7 +229,7 @@ int sendHeader(long fd, message_t *msg){
 	//mando hdr
 	if((write(fd, storage, sizeof(op_t)+sizeof(membox_key_t))) == -1){
 		free(storage);
-		printf("err1\n");
+		printf("[sendHeader] err1\n");
 		return -1;
 	}
 	
@@ -289,7 +289,7 @@ int sendRequest(long fd, message_t *msg){
 	//mando hdr
 	if((write(fd, storage, sizeof(op_t)+sizeof(membox_key_t))) == -1){
 		free(storage);
-		printf("err1\n");
+		printf("[sendRequest] err1\n");
 		return -1;
 	}
 	printf("[sendRequest] written to socket\n");

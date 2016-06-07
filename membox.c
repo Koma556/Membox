@@ -113,7 +113,7 @@ int statOP(int opResult, op_t op, int length){
 			{
 				mboxStats.nput++;
 				mboxStats.current_objects++;
-				mboxStats.current_size += length*sizeof(char);
+				mboxStats.current_size += length;
 				if(mboxStats.max_size < mboxStats.current_size)
 					mboxStats.max_size = mboxStats.current_size;
 				if(mboxStats.max_objects < mboxStats.current_objects)
@@ -130,7 +130,7 @@ int statOP(int opResult, op_t op, int length){
 			{
 				mboxStats.nremove++;
 				mboxStats.current_objects--;
-				mboxStats.current_size -= length*sizeof(char);
+				mboxStats.current_size = mboxStats.current_size - length;
 			}
 			break;
 			
@@ -165,7 +165,7 @@ int statOP(int opResult, op_t op, int length){
 			case GET_OP: 
 			{
 				mboxStats.nget++;
-				mboxStats.nget++mboxStats.nget_failed++;
+				mboxStats.nget_failed++;
 			}
 			break;
 			case REMOVE_OP: 
@@ -202,7 +202,7 @@ int statConnections(int side){
 }
 
 int sendReply(op_t oldop, message_t *msg, int socID){
-	printf("[sendReply] oldop: %u\n", (unsigned int)oldop);
+	printf("[sendReply] oldop: %u\treply: %u\tlength: %u\n", (unsigned int)oldop, (unsigned int)msg->hdr.op, (unsigned int)msg->data.len);
 	switch(oldop)
 	{
 		case PUT_OP: return sendHeader(socID, msg);
@@ -224,27 +224,6 @@ int sendReply(op_t oldop, message_t *msg, int socID){
 		default: return -1;
 	}
 	return -1;
-}
-
-/**
- * @function statStructure
- * @brief handles byte size and obj number stats for mboxStats
- * 
- * @param size 		size of object I just handled
- * @param side		flag to control if I'm removing or adding objects
- */
-int statStructure(int size, int side){
-	if(side == 1)
-	{
-		if(++mboxStats.current_objects > mboxStats.max_objects) mboxStats.max_objects = mboxStats.current_objects;
-		if((mboxStats.current_size += size) > mboxStats.max_size) mboxStats.max_size = mboxStats.current_size;
-	}
-	else
-	{
-		if((mboxStats.current_objects--) < 0) return -1;
-		if((mboxStats.current_size-= size) < 0) return -1;
-	}
-	return 0;
 }
 
 char* readLocation(char** args, int argc){
@@ -491,7 +470,7 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 			{		
 				if((err = pthread_mutex_lock(&dataMUTEX)) == 0)
 				{	
-					if((icl_hash_delete(dataTable, &msg->hdr.key, cleaninFun, cleaninData)) == -1)
+					if((olddata = icl_hash_find(dataTable, &msg->hdr.key)) == NULL)
 					{
 						pthread_mutex_unlock(&dataMUTEX);
 						msg->hdr.op = OP_REMOVE_NONE;
@@ -499,6 +478,8 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 					}
 					else
 					{
+						msg->data.len = olddata->len;
+						icl_hash_delete(dataTable, &msg->hdr.key, cleaninFun, cleaninData);
 						pthread_mutex_unlock(&dataMUTEX);
 						msg->hdr.op = OP_OK;
 						result = 0;
