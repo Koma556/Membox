@@ -234,7 +234,7 @@ int sendData(long fd, message_t *msg){
 	char* storage;
 	
 	//preparo data
-	if((storage = (char*)malloc((msg->data.len+1)*(sizeof(unsigned int)+sizeof(char)))) == NULL)
+	if((storage = (char*)malloc((msg->data.len+1)*(sizeof(char))+sizeof(unsigned int))) == NULL)
 	{
 		errno = ENOMEM; 
 		free(storage);
