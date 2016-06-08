@@ -212,10 +212,11 @@ int statConnections(int side){
 
 int sendReply(op_t oldop, message_t *msg, int socID){
 	printf("[sendReply] oldop: %u\treply: %u\tlength: %u\n", (unsigned int)oldop, (unsigned int)msg->hdr.op, (unsigned int)msg->data.len);
-	if(oldop == GET_OP || oldop == OP_FAIL)
+	if(oldop == GET_OP)
 	{
 		if(sendHeader(socID, msg) < 0) return -1;
-		if(sendData(socID, msg) < 0) return -1;
+		if(msg->hdr.op == OP_OK)
+			if(sendData(socID, msg) < 0) return -1;
 		return 0;
 	}
 	else
@@ -380,7 +381,7 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 					*newkey = msg->hdr.key;
 					newdata = calloc(1, sizeof(message_data_t));
 					newdata->len = msg->data.len;
-					newdata->buf = calloc(msg->data.len, sizeof(char));
+					newdata->buf = (char*)calloc(msg->data.len+1, sizeof(char));
 					memcpy(newdata->buf, msg->data.buf, sizeof(char)*(msg->data.len));
 					do
 					{
@@ -394,7 +395,6 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 								else
 								{
 									// not enough memory
-									printf("OHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIOOHMIODIO\n");
 									msg->hdr.op = OP_FAIL; 
 								}
 								pthread_mutex_unlock(&dataMUTEX);
@@ -478,6 +478,7 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 						{
 							msg->hdr.op = OP_OK;
 							msg->data.buf = olddata->buf;
+							printf("[olddata] %s\n", olddata->buf);
 							result = 0;
 						}
 						pthread_mutex_unlock(&dataMUTEX);
@@ -556,8 +557,8 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 			break;
 			default: 
 			{
-				perror("OP not recognized.\n");
-				exit(EXIT_FAILURE);
+				msg->hdr.op = OP_FAIL;
+				result = 1;
 			}
 		}
 	}
@@ -932,6 +933,5 @@ int main(int argc, char *argv[]) {
 	free(thrds);
 	printf("freed stuff\n");
 	
-	exit(EXIT_SUCCESS);
     return 0;
 }

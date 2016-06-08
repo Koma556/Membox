@@ -170,7 +170,7 @@ int readData(long fd, message_data_t *data){
 	memcpy(&data->len, &length, sizeof(unsigned int));
 	
 	//alloco storage per ospitare data
-	if((storage = calloc(length, sizeof(char))) == NULL)
+	if((storage = calloc(length+1, sizeof(char))) == NULL)
 	{
 		errno = ENOMEM; 
 		return -1;
@@ -202,7 +202,7 @@ int readData(long fd, message_data_t *data){
 		}
 	}
 	data->buf = storage;
-	printf("[readData] finito di leggere il buffer\n");
+	printf("[readData] finito di leggere il buffer, content dump: %s\n", data->buf);
 	
 	return 0;
 }
