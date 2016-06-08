@@ -717,15 +717,11 @@ void* dispatcher(void* args){
 	while(overlord == 1)
 	{
 		printf("[dispatcher] waiting on connection...\n");
+		// blatantly stolen from stackoverflow, stops dispatcher from waiting forever on accept
 		rv = select(socID + 1, &set, NULL, NULL, &timeout);
-		if(rv == -1)
+		if(rv == 0 && overlord == 0)
 		{
-			perror("select"); /* an error accured */
-			return 1;
-		}
-		else if(rv == 0)
-		{
-			printf("timeout occurred (2 second) \n"); /* a timeout occured */
+			printf("rv: %d\toverlord %d\ttimeout occurred (2 second) \n", rv, overlord); /* a timeout occured */
 			break;
 		}
 		if((tmpSockt = accept(socID, NULL, 0)) != -1)
