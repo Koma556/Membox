@@ -8,6 +8,10 @@
 /**
  * @file membox.c
  * @brief File principale del server membox
+ * @author Giuseppe Crea 501922  
+ *   Si dichiara che il contenuto di questo file e' in ogni sua parte opera  
+ *   originale dell'autore.  
+ */  
  */
 #define _POSIX_C_SOURCE 200809L
 #define UNIX_PATH_MAX  64
@@ -210,20 +214,6 @@ int statConnections(int side){
 	else return 0;
 }
 
-int sendReply(op_t oldop, message_t *msg, int socID){
-	printf("[sendReply] oldop: %u\treply: %u\tlength: %u\n", (unsigned int)oldop, (unsigned int)msg->hdr.op, (unsigned int)msg->data.len);
-	if(oldop == GET_OP)
-	{
-		if(sendHeader(socID, msg) < 0) return -1;
-		if(msg->hdr.op == OP_OK)
-			if(&msg->data != NULL)
-				if(sendData(socID, msg) < 0) return -1;
-		return 0;
-	}
-	else
-		return sendHeader(socID, msg);
-}
-
 char* readLocation(char** args, int argc){
 	char *tmp;
 	int i;
@@ -353,7 +343,6 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 		{
 			case PUT_OP:
 			{
-				printf("[selectorOP] entering PUT_OP\n");
 				do
 				{
 					if((err = pthread_mutex_lock(&stCO)) == 0)
@@ -390,12 +379,10 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 						{
 							if((icl_hash_insert(dataTable, newkey, (void*)newdata)) == NULL)
 							{
-								// dato che non posso modificare le funzioni in icl_hash, cerco di nuovo
 								if(icl_hash_find(dataTable, newkey) != NULL)
 									msg->hdr.op = OP_PUT_ALREADY;
 								else
 								{
-									// not enough memory
 									msg->hdr.op = OP_FAIL; 
 								}
 								pthread_mutex_unlock(&dataMUTEX);
@@ -409,7 +396,6 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 								pthread_mutex_unlock(&dataMUTEX);
 								msg->hdr.op = OP_OK;
 								result = 0;
-								printf("[selectorOP] ho inserito\n");
 							}
 							
 						}
@@ -480,7 +466,6 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 							msg->hdr.op = OP_OK;
 							msg->data.buf = calloc(olddata->len+1, sizeof(char));
 							memcpy(msg->data.buf, olddata->buf, olddata->len);
-							printf("[olddata] %s\n", olddata->buf);
 							result = 0;
 						}
 						pthread_mutex_unlock(&dataMUTEX);
@@ -576,22 +561,6 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 	while(err != 0);
 }
 
-void printMsg(message_t* msg, int thrd){
-	//printf("==============THREAD#%d==============\nHeader OP: %d\nHeader Key: %li\nData Len: %u\nData Payload: %s\n", thrd, msg->hdr.op, msg->hdr.key, msg->data.len, msg->data.buf); 
-	printf("msg number %li to thread %d success\n", msg->hdr.key, thrd);
-	fflush(stdout);
-}
-
-void printList(listSimple* head){
-	listSimple* curr = head;
-	printf("\t\n");
-	for(;curr != NULL; curr = curr->next)
-	{
-		printf("%d -> ", curr->sokAddr);
-	}
-	printf("\nqueueLength: %d", queueLength);
-}
-
 int initActivity(int flag){
 	int err = -1, thrdnumber;
 	do
@@ -601,8 +570,7 @@ int initActivity(int flag){
 			activethreads+=flag;
 			if(flag == 1)
 			{
-				thrdnumber = activethreads;
-				printf("I'm thread %d\n",thrdnumber); 
+				thrdnumber = activethreads; 
 			}
 			pthread_mutex_unlock(&actvth);
 		}
@@ -621,7 +589,6 @@ void* dealmaker (void* args){
 	
 	while(overlord == 1)
 	{
-		printf("[thread%d] ricomincio da capo\n", thrdnumber);
 		do
 		{
 			if((err = pthread_mutex_lock(&coQU)) == 0)
@@ -630,13 +597,11 @@ void* dealmaker (void* args){
 				{
 					if(overlord == 1)
 					{
-						printf("[thread%d] attendo on coQUwait\n", thrdnumber);
 						pthread_cond_wait(&coQUwait, &coQU);
 					}
 					else if(overlord == 0)
 					{
 						pthread_mutex_unlock(&coQU);
-						printf("[thread%d] hop hop and away!\n", thrdnumber);
 						initActivity(-1);
 						pthread_exit(NULL);
 					}
@@ -668,34 +633,28 @@ void* dealmaker (void* args){
 			if((messg = calloc(1, sizeof(message_t))) == NULL)
 				{
 					errno = ENOMEM;
-					printf("Can't allocate memory for receiver\n");
 					exit(EXIT_FAILURE);
 				}
-			printf("[dealmaker%d] messg alloc'd\n", thrdnumber);
 			if(readHeader(soktAcc, &messg->hdr) < 0)
 			{
 				free(messg);
-				printf("[thread%d] breaking out\n", thrdnumber);
 				break;
 			}
 			if(readData(soktAcc, &messg->data) < 0) 
 			{
+				free(messg->data.buf);
 				free(messg);
-				printf("[thread%d] breaking out\n", thrdnumber);
 				break;
 			}
-			printf("[dealmaker%d] msg->hdr.op: %u\t msg->data.len: %u\n", thrdnumber, messg->hdr.op, messg->data.len);
 			tmpop = messg->hdr.op;
 			selectorOP(messg, soktAcc, tmpop);
 			if(sendReply(tmpop, messg, soktAcc) != 0)
 					printf("[dealmaker%d] sendReply returned failure state\n", thrdnumber);
 			free(messg->data.buf);
 			free(messg);
-			printf("[dealmaker%d] messg free'd\n", thrdnumber);
 		}
 		if(replock == soktAcc) replock = -1;
 		close(soktAcc);
-		printf("[thread%d] ho chiuso il socket %d\n", thrdnumber, soktAcc);
 		do
 		{
 			if((err2 = pthread_mutex_lock(&stCO)) == 0)
@@ -710,10 +669,8 @@ void* dealmaker (void* args){
 		}
 		while(err2 != 0);
 	}
-	printf("[thread %d] shutting down\n", thrdnumber);
-	fflush(stdout);
-	initActivity(-1);
 	
+	initActivity(-1);
 	pthread_exit(NULL);
 }
 
@@ -722,19 +679,8 @@ void* dispatcher(void* args){
 	int err = -1;
 	message_t *msg;
 	
-	/*
-	fd_set set;
-	struct timeval timeout;
-	int rv;
-	FD_ZERO(&set);
-	FD_SET(socID, &set);
-	timeout.tv_sec = 2;
-	timeout.tv_usec = 0;
-	*/
-	
 	while(overlord)
 	{
-		printf("[dispatcher] waiting on connection...\n");
 		if((tmpSockt = accept(highSocID, NULL, 0)) > 0)
 		{				
 			do
@@ -744,7 +690,6 @@ void* dispatcher(void* args){
 					//printf("Producer has mutex\n");
 					if(queueLength + mboxStats.concurrent_connections < maxconnections)
 					{
-						printf("[dispatcher] Producer has coQU mutex to append socID to the queue\n");
 						connectionQueue->sokAddr = tmpSockt;
 						connectionQueue->next = calloc(1, sizeof(listSimple));
 						queueLength++;
@@ -753,7 +698,6 @@ void* dispatcher(void* args){
 						connectionQueue->next = NULL;
 						pthread_cond_signal(&coQUwait);
 						pthread_mutex_unlock(&coQU);
-						printf("[dispatcher] producer broadcasted\n");
 					}
 					else
 					{
@@ -773,7 +717,6 @@ void* dispatcher(void* args){
 			while(err != 0);
 		}
 	}
-	printf("[dispatcher] closing shop\n");
 	pthread_cond_broadcast(&coQUwait);
 	pthread_exit(NULL);
 }
@@ -810,7 +753,6 @@ int main(int argc, char *argv[]) {
     
     // leggo il file di configurazione
     socketpath = readLine(fp);
-    fflush(stdout);
     readConfig(fp, config);
     statfilepath = readLine(fp);
     fclose(fp);
@@ -829,9 +771,6 @@ int main(int argc, char *argv[]) {
 		maxconnections = threadsinpool;
 	}
     
-    //DEBUG: print all it read from config file.
-    printf("%s\t%d\t%d\t%d\t%d\t%d\t%s\n", socketpath, config[0], config[1], config[2], config[3], config[4], statfilepath);
-    
     // array dove salvo i pid dei thread
     if((thrds = calloc(threadsinpool, sizeof(pthread_t))) == NULL)
     {
@@ -839,7 +778,7 @@ int main(int argc, char *argv[]) {
 		printf("%s\n", strerror(errno));
 		return -1;
 	}
-    printf("thrds alloc'd\n");
+    
 	// array dove salvo le connessioni in attesa
 	if((connectionQueue = calloc(1, sizeof(listSimple))) == NULL)
 	{
@@ -850,7 +789,6 @@ int main(int argc, char *argv[]) {
 	connectionQueue->sokAddr = -1;
 	connectionQueue->next = NULL;
 	head = connectionQueue;
-	printf("connectionQueue alloc'd\n");
 	
     // alloco la struttura dati d'hash condivisa
     if((dataTable = icl_hash_create(1087, ulong_hash_function, ulong_key_compare)) == NULL)
@@ -859,21 +797,18 @@ int main(int argc, char *argv[]) {
 		printf("%s\n", strerror(errno));
 		return -1;
 	}
-    printf("dataTable alloc'd\n");
 	
     // apro il file di log
     if(statfilepath != NULL)
-		descriptr = fopen(statfilepath, "w+");
-    printf("statfile open\n");    
+		descriptr = fopen(statfilepath, "w+");  
     
     // creo il socket
-    remove(socketpath);//printf("Cleaned up old Socket.\nPossible recovery after crash?\n");
+    remove(socketpath);
     if((highSocID = startConnection(socketpath)) == -1)
 	{
 		printf("Couldn't create socket. Resource busy.\n");
 		exit(EXIT_FAILURE);
 	}
-	else printf("Socket %d open.\n", highSocID);
 	
 	// alloco il dispatcher
     if((err = pthread_create(&disp, NULL, dispatcher, NULL)) != 0)
@@ -893,34 +828,25 @@ int main(int argc, char *argv[]) {
 	}
 	
 	// gently close all threads
-	printf("[main] waiting on pthread_join\n");
 	
 	pthread_join(disp, NULL);
-	printf("dispatcher joined\n");
 	for(i = 0; i < threadsinpool; i++)
 	{
 		pthread_join(thrds[i], NULL);
-		printf("thread %d joined\n", i);
 	}
 	
 	printLog();
-	printf("log printed\n");
 	
 	if(statfilepath != NULL)
 	{
 		fclose(descriptr);
-		printf("closed statfilepath\n");
 	}
-	//TODO: empy list
 	cleanList(head);
-
 	remove(socketpath);
 	icl_hash_destroy(dataTable, cleaninFun, cleaninData);
-	printf("destroyed dataTable\n");
 	free(statfilepath);
 	free(socketpath);
 	free(thrds);
-	printf("freed stuff\n");
-	
+	printf("All done!\n");
     return 0;
 }

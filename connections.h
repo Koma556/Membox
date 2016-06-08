@@ -47,6 +47,8 @@ int openConnection(char* path, unsigned int ntimes, unsigned int secs);
  */
 int startConnection(char* path);
 
+int sendReply(op_t oldop, message_t *msg, int socID);
+
 /**
  * @function readHeader
  * @brief Legge l'header del messaggio

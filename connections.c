@@ -32,7 +32,10 @@
  * @file  connection.h
  * @brief Contiene le funzioni che implementano il protocollo 
  *        tra i clients ed il server membox
- */
+ * @author Giuseppe Crea 501922  
+ *        Si dichiara che il contenuto di questo file e' in ogni sua parte opera  
+ *   	  originale dell'autore.  
+ */  
 
 /**
  * @function openConnection
@@ -108,6 +111,30 @@ int startConnection(char* path){
 }
 
 /**
+ * @function sendReply
+ * @brief decide cosa mandare fra header e data a seconda dell'operazione alla quale sta rispondendo
+ * 
+ * @param oldop	operazione richiesta dal client
+ * @param msg	puntatore alla struttura dati che contiene il messaggio da inviare
+ * @param socID	id del socket sul quale mandare il messaggio
+ * 
+ * @return	0 in caso di successo, -1 in caso d'errore
+ * 
+ **/
+int sendReply(op_t oldop, message_t *msg, int socID){
+	if(oldop == GET_OP)
+	{
+		if(sendHeader(socID, msg) < 0) return -1;
+		if(msg->hdr.op == OP_OK)
+			if(&msg->data != NULL)
+				if(sendData(socID, msg) < 0) return -1;
+		return 0;
+	}
+	else
+		return sendHeader(socID, msg);
+}
+
+/**
  * @function readHeader
  * @brief Legge l'header del messaggio
  *
@@ -124,7 +151,6 @@ int readHeader(long fd, message_hdr_t *hdr){
 	if((storage = calloc(1, sizeof(op_t)+sizeof(membox_key_t))) == NULL)
 	{
 		errno = ENOMEM; 
-		printf("[readHeader] err1\n");
 		return -1;
 	}
 	
@@ -133,7 +159,6 @@ int readHeader(long fd, message_hdr_t *hdr){
 	if(ck <= 0)
 	{	
 		free(storage);
-		printf("[readHeader] err2: ck = %d\n", ck);
 		return -1;
 	}
 		
@@ -177,13 +202,11 @@ int readData(long fd, message_data_t *data){
 	}
 	
 	// leggo data dal socket 
-	printf("[readData] sto per leggere il buffer\n");
 	ck = read(fd, storage, (sizeof(char)*length));
 	cnt += ck;
 	if(ck < 0)
 	{	
-		if(storage != NULL)
-			free(storage);
+		free(storage);
 		return -1;
 	}
 	// in caso la read non sia più atomica
@@ -222,7 +245,6 @@ int sendHeader(long fd, message_t *msg){
 	//mando hdr
 	if((write(fd, storage, sizeof(op_t)+sizeof(membox_key_t))) == -1){
 		free(storage);
-		printf("[sendHeader] err1\n");
 		return -1;
 	}
 	
@@ -238,7 +260,6 @@ int sendData(long fd, message_t *msg){
 	{
 		errno = ENOMEM; 
 		free(storage);
-		printf("err2\n");
 		return -1;
 	}
 		
@@ -248,7 +269,6 @@ int sendData(long fd, message_t *msg){
 	//mando data
 	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){
 		free(storage);
-		printf("err3\n");
 		return -1;
 	}
 	free(storage);
@@ -269,31 +289,26 @@ int sendData(long fd, message_t *msg){
 int sendRequest(long fd, message_t *msg){
 	char* storage;
 	
-	printf("[sendRequest] inizio\n");
 	//preparo hdr
 	if((storage = calloc(1, sizeof(op_t)+sizeof(membox_key_t))) == NULL){
 		errno = ENOMEM; 
-		printf("[sendRequest] ENOMEM\n");
+
 		return -1;
 	}
 	memcpy(storage, &msg->hdr.op, sizeof(op_t));
-	printf("[sendRequest] copiato hdr.op\n");
 	memcpy(storage+sizeof(op_t), &msg->hdr.key, sizeof(membox_key_t));
-	printf("[sendRequest] copiato hdr.key\n");
+	
 	//mando hdr
 	if((write(fd, storage, sizeof(op_t)+sizeof(membox_key_t))) == -1){
 		free(storage);
-		printf("[sendRequest] err1\n");
 		return -1;
 	}
-	printf("[sendRequest] written to socket\n");
 	free(storage);
 	
 	//preparo data
 	if((storage = calloc(msg->data.len, (sizeof(unsigned int)+sizeof(char)))) == NULL){
 		errno = ENOMEM; 
 		free(storage);
-		printf("err2\n");
 		return -1;
 	}
 		
@@ -303,10 +318,8 @@ int sendRequest(long fd, message_t *msg){
 	//mando data
 	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){
 		free(storage);
-		printf("err3\n");
 		return -1;
 	}
-	printf("[sendRequest] done writing, closing up...\n");
 	free(storage);
 	
 	return 0;
