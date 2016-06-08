@@ -202,7 +202,6 @@ int readData(long fd, message_data_t *data){
 		}
 	}
 	data->buf = storage;
-	printf("[readData] finito di leggere il buffer, content dump: %s\n", data->buf);
 	
 	return 0;
 }
@@ -235,15 +234,16 @@ int sendData(long fd, message_t *msg){
 	char* storage;
 	
 	//preparo data
-	if((storage = calloc(msg->data.len, (sizeof(unsigned int)+sizeof(char)))) == NULL){
+	if((storage = (char*)malloc((msg->data.len+1)*(sizeof(unsigned int)+sizeof(char)))) == NULL)
+	{
 		errno = ENOMEM; 
 		free(storage);
 		printf("err2\n");
 		return -1;
 	}
 		
-	memcpy(storage, &msg->data.len, sizeof(unsigned int));
-	memcpy(storage+sizeof(op_t), msg->data.buf, sizeof(char)*msg->data.len);
+	if(&msg->data.len != NULL) memcpy(storage, &msg->data.len, sizeof(unsigned int));
+	if(msg->data.buf != NULL) memcpy(storage+sizeof(op_t), msg->data.buf, sizeof(char)*msg->data.len);
 	
 	//mando data
 	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){

@@ -44,6 +44,7 @@ static char *socketpath, *statfilepath;
 static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize;
 static volatile sig_atomic_t overlord = 1;
 static int activethreads = 0, queueLength = 0, replock = -1;
+static int highSocID = 0;
 static FILE* descriptr;
 static pthread_t disp;
 // Struttura dati condivisa
@@ -85,8 +86,7 @@ static inline int ulong_key_compare( void *key1, void *key2  ) {
 
 void shutDown(){
 	overlord = 0;
-	pthread_cancel(disp);
-	pthread_cond_broadcast(&coQUwait);
+	shutdown(highSocID, SHUT_RD);
 }
 
 void printLog(){
@@ -216,7 +216,8 @@ int sendReply(op_t oldop, message_t *msg, int socID){
 	{
 		if(sendHeader(socID, msg) < 0) return -1;
 		if(msg->hdr.op == OP_OK)
-			if(sendData(socID, msg) < 0) return -1;
+			if(&msg->data != NULL)
+				if(sendData(socID, msg) < 0) return -1;
 		return 0;
 	}
 	else
@@ -423,7 +424,7 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 				*newkey = msg->hdr.key;
 				newdata = calloc(1, sizeof(message_data_t));
 				newdata->len = msg->data.len;
-				newdata->buf = calloc(msg->data.len, sizeof(char));
+				newdata->buf = calloc(msg->data.len+1, sizeof(char));
 				memcpy(newdata->buf, msg->data.buf, sizeof(char)*(msg->data.len));
 				do
 				{
@@ -477,7 +478,8 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 						else
 						{
 							msg->hdr.op = OP_OK;
-							msg->data.buf = olddata->buf;
+							msg->data.buf = calloc(olddata->len+1, sizeof(char));
+							memcpy(msg->data.buf, olddata->buf, olddata->len);
 							printf("[olddata] %s\n", olddata->buf);
 							result = 0;
 						}
@@ -687,6 +689,7 @@ void* dealmaker (void* args){
 			selectorOP(messg, soktAcc, tmpop);
 			if(sendReply(tmpop, messg, soktAcc) != 0)
 					printf("[dealmaker%d] sendReply returned failure state\n", thrdnumber);
+			free(messg->data.buf);
 			free(messg);
 			printf("[dealmaker%d] messg free'd\n", thrdnumber);
 		}
@@ -715,7 +718,7 @@ void* dealmaker (void* args){
 }
 
 void* dispatcher(void* args){
-	int socID = (intptr_t) args, tmpSockt;
+	int tmpSockt;
 	int err = -1;
 	message_t *msg;
 	
@@ -727,62 +730,48 @@ void* dispatcher(void* args){
 	FD_SET(socID, &set);
 	timeout.tv_sec = 2;
 	timeout.tv_usec = 0;
-	//*/
+	*/
 	
-	while(overlord == 1)
+	while(overlord)
 	{
 		printf("[dispatcher] waiting on connection...\n");
-		// blatantly stolen from stackoverflow, stops dispatcher from waiting forever on accept
-		/*
-		rv = select(socID + 1, &set, NULL, NULL, &timeout);
-		if(rv >= 0)
-		{
-			if(rv == 0 && overlord == 0) break;
-			//*/
-			if((tmpSockt = accept(socID, NULL, 0)) != -1)
-			{				
-				do
+		if((tmpSockt = accept(highSocID, NULL, 0)) > 0)
+		{				
+			do
+			{
+				if((err = pthread_mutex_lock(&coQU)) == 0)
 				{
-					if((err = pthread_mutex_lock(&coQU)) == 0)
+					//printf("Producer has mutex\n");
+					if(queueLength + mboxStats.concurrent_connections < maxconnections)
 					{
-						//printf("Producer has mutex\n");
-						if(queueLength + mboxStats.concurrent_connections < maxconnections)
-						{
-							printf("[dispatcher] Producer has coQU mutex to append socID to the queue\n");
-							connectionQueue->sokAddr = tmpSockt;
-							connectionQueue->next = calloc(1, sizeof(listSimple));
-							queueLength++;
-							connectionQueue = connectionQueue->next;
-							connectionQueue->sokAddr = -1;
-							connectionQueue->next = NULL;
-							pthread_cond_signal(&coQUwait);
-							pthread_mutex_unlock(&coQU);
-							printf("[dispatcher] producer broadcasted\n");
-						}
-						else
-						{
-							pthread_mutex_unlock(&coQU);
-							msg = calloc(1, sizeof(message_t));
-							msg->hdr.op = OP_FAIL;
-							msg->hdr.key = -1;
-							msg->data.buf = calloc(20, sizeof(char));
-							sprintf(msg->data.buf, "connection refused\n");
-							sendReply(msg->hdr.op, msg, tmpSockt);
-							free(msg->data.buf);
-							free(msg);
-							close(tmpSockt);
-						}
+						printf("[dispatcher] Producer has coQU mutex to append socID to the queue\n");
+						connectionQueue->sokAddr = tmpSockt;
+						connectionQueue->next = calloc(1, sizeof(listSimple));
+						queueLength++;
+						connectionQueue = connectionQueue->next;
+						connectionQueue->sokAddr = -1;
+						connectionQueue->next = NULL;
+						pthread_cond_signal(&coQUwait);
+						pthread_mutex_unlock(&coQU);
+						printf("[dispatcher] producer broadcasted\n");
+					}
+					else
+					{
+						pthread_mutex_unlock(&coQU);
+						msg = calloc(1, sizeof(message_t));
+						msg->hdr.op = OP_FAIL;
+						msg->hdr.key = -1;
+						msg->data.buf = calloc(20, sizeof(char));
+						sprintf(msg->data.buf, "connection refused\n");
+						sendReply(msg->hdr.op, msg, tmpSockt);
+						free(msg->data.buf);
+						free(msg);
+						close(tmpSockt);
 					}
 				}
-				while(err != 0);
 			}
-		/*
+			while(err != 0);
 		}
-		else
-		{
-			sleep(1);
-		}
-		//*/
 	}
 	printf("[dispatcher] closing shop\n");
 	pthread_cond_broadcast(&coQUwait);
@@ -790,7 +779,7 @@ void* dispatcher(void* args){
 }
 
 int main(int argc, char *argv[]) {
-	int config[5], socID, err, i = 0;
+	int config[5], err, i = 0;
 	char *configfilepath;
 	pthread_t* thrds;
 	FILE *fp;
@@ -879,15 +868,15 @@ int main(int argc, char *argv[]) {
     
     // creo il socket
     remove(socketpath);//printf("Cleaned up old Socket.\nPossible recovery after crash?\n");
-    if((socID = startConnection(socketpath)) == -1)
+    if((highSocID = startConnection(socketpath)) == -1)
 	{
 		printf("Couldn't create socket. Resource busy.\n");
 		exit(EXIT_FAILURE);
 	}
-	else printf("Socket open.\n");
+	else printf("Socket %d open.\n", highSocID);
 	
 	// alloco il dispatcher
-    if((err = pthread_create(&disp, NULL, dispatcher, (void*) (intptr_t) socID)) != 0)
+    if((err = pthread_create(&disp, NULL, dispatcher, NULL)) != 0)
     {
 		perror("Unable to create dispatcher thread!\n");
 		exit(EXIT_FAILURE);
@@ -924,7 +913,7 @@ int main(int argc, char *argv[]) {
 	}
 	//TODO: empy list
 	cleanList(head);
-	close(socID);
+
 	remove(socketpath);
 	icl_hash_destroy(dataTable, cleaninFun, cleaninData);
 	printf("destroyed dataTable\n");

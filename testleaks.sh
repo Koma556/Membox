@@ -8,7 +8,7 @@ if [[ $# != 1 ]]; then
 fi
 
 rm -f valgrind_out
-/usr/bin/valgrind --leak-check=full ./membox -f DATA/membox.conf1 >& ./valgrind_out &
+/usr/bin/valgrind --leak-check=full --show-leak-kinds=all ./membox -f DATA/membox.conf1 >& ./valgrind_out &
 pid=$!
 
 # aspetto un po' per far partire valgrind
