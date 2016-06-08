@@ -45,6 +45,7 @@ static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize;
 static volatile sig_atomic_t overlord = 1;
 static int activethreads = 0, queueLength = 0, replock = -1;
 static FILE* descriptr;
+static pthread_t disp;
 // Struttura dati condivisa
 static icl_hash_t* dataTable;
 static listSimple* connectionQueue, *head;
@@ -84,6 +85,8 @@ static inline int ulong_key_compare( void *key1, void *key2  ) {
 
 void shutDown(){
 	overlord = 0;
+	pthread_cancel(disp);
+	pthread_cond_broadcast(&coQUwait);
 }
 
 void printLog(){
@@ -292,6 +295,17 @@ void readConfig(FILE* fd, int *conf){
 		else i--;
 	}
 	free(str);
+}
+
+void cleanList(listSimple *head){
+	listSimple* tmp;
+	
+	while(head != NULL)
+	{
+		tmp = head;
+		head = head->next;
+		free(tmp);
+	}
 }
 
 void cleaninFun(void* arg){
@@ -631,7 +645,6 @@ void* dealmaker (void* args){
 				queueLength--;
 				pthread_mutex_unlock(&coQU);
 			}
-			pthread_mutex_unlock(&coQU);
 		}
 		while(err != 0);
 		do
@@ -692,7 +705,6 @@ void* dealmaker (void* args){
 			}
 		}
 		while(err2 != 0);
-		//printLog();
 	}
 	printf("[thread %d] shutting down\n", thrdnumber);
 	fflush(stdout);
@@ -706,61 +718,70 @@ void* dispatcher(void* args){
 	int err = -1;
 	message_t *msg;
 	
+	/*
 	fd_set set;
 	struct timeval timeout;
 	int rv;
-	FD_ZERO(&set); /* clear the set */
-	FD_SET(socID, &set); /* add our file descriptor to the set */
+	FD_ZERO(&set);
+	FD_SET(socID, &set);
 	timeout.tv_sec = 2;
 	timeout.tv_usec = 0;
+	//*/
 	
 	while(overlord == 1)
 	{
 		printf("[dispatcher] waiting on connection...\n");
 		// blatantly stolen from stackoverflow, stops dispatcher from waiting forever on accept
+		/*
 		rv = select(socID + 1, &set, NULL, NULL, &timeout);
-		if(rv == 0 && overlord == 0)
+		if(rv >= 0)
 		{
-			printf("rv: %d\toverlord %d\ttimeout occurred (2 second) \n", rv, overlord); /* a timeout occured */
-			break;
-		}
-		if((tmpSockt = accept(socID, NULL, 0)) != -1)
-		{				
-			do
-			{
-				if((err = pthread_mutex_lock(&coQU)) == 0)
+			if(rv == 0 && overlord == 0) break;
+			//*/
+			if((tmpSockt = accept(socID, NULL, 0)) != -1)
+			{				
+				do
 				{
-					//printf("Producer has mutex\n");
-					if(queueLength + mboxStats.concurrent_connections < maxconnections)
+					if((err = pthread_mutex_lock(&coQU)) == 0)
 					{
-						printf("[dispatcher] Producer has coQU mutex to append socID to the queue\n");
-						connectionQueue->sokAddr = tmpSockt;
-						connectionQueue->next = calloc(1, sizeof(listSimple));
-						queueLength++;
-						connectionQueue = connectionQueue->next;
-						connectionQueue->sokAddr = -1;
-						connectionQueue->next = NULL;
-						pthread_cond_signal(&coQUwait);
-						pthread_mutex_unlock(&coQU);
-						printf("[dispatcher] producer broadcasted\n");
-					}
-					else
-					{
-						pthread_mutex_unlock(&coQU);
-						msg = calloc(1, sizeof(message_t));
-						msg->hdr.op = OP_FAIL;
-						msg->hdr.key = -1;
-						msg->data.buf = calloc(20, sizeof(char));
-						sprintf(msg->data.buf, "connection refused\n");
-						sendReply(msg->hdr.op, msg, tmpSockt);
-						free(msg->data.buf);
-						free(msg);
-						close(tmpSockt);
+						//printf("Producer has mutex\n");
+						if(queueLength + mboxStats.concurrent_connections < maxconnections)
+						{
+							printf("[dispatcher] Producer has coQU mutex to append socID to the queue\n");
+							connectionQueue->sokAddr = tmpSockt;
+							connectionQueue->next = calloc(1, sizeof(listSimple));
+							queueLength++;
+							connectionQueue = connectionQueue->next;
+							connectionQueue->sokAddr = -1;
+							connectionQueue->next = NULL;
+							pthread_cond_signal(&coQUwait);
+							pthread_mutex_unlock(&coQU);
+							printf("[dispatcher] producer broadcasted\n");
+						}
+						else
+						{
+							pthread_mutex_unlock(&coQU);
+							msg = calloc(1, sizeof(message_t));
+							msg->hdr.op = OP_FAIL;
+							msg->hdr.key = -1;
+							msg->data.buf = calloc(20, sizeof(char));
+							sprintf(msg->data.buf, "connection refused\n");
+							sendReply(msg->hdr.op, msg, tmpSockt);
+							free(msg->data.buf);
+							free(msg);
+							close(tmpSockt);
+						}
 					}
 				}
+				while(err != 0);
 			}
-			while(err != 0);
+		/*
 		}
+		else
+		{
+			sleep(1);
+		}
+		//*/
 	}
 	printf("[dispatcher] closing shop\n");
 	pthread_cond_broadcast(&coQUwait);
@@ -770,20 +791,11 @@ void* dispatcher(void* args){
 int main(int argc, char *argv[]) {
 	int config[5], socID, err, i = 0;
 	char *configfilepath;
-	pthread_t* thrds, disp;
+	pthread_t* thrds;
 	FILE *fp;
 	struct sigaction s;
 	struct sigaction r;
-	//sigset_t set;
-	 
-	/*li maschero tutti*/
-	/*
-	sigfillset(&set);
-	sigdelset(&set, SIGUSR1);
-	sigdelset(&set, SIGUSR2);
-	pthread_sigmask(SIG_SETMASK,&set,NULL);
-	//*/
-	
+		
 	memset(&s, 0, sizeof(s));
 	memset(&r, 0, sizeof(r));	
 		
@@ -791,9 +803,9 @@ int main(int argc, char *argv[]) {
 	r.sa_handler = printLog;
 	sigaction(SIGUSR1, &r, NULL);
 	sigaction(SIGUSR2, &s, NULL);
-	//TODO: mask signals
-	// SIGUSR1: close all threads and then quit
-	// SIGUSR2: stamp mboxStat to file if file exists
+	sigaction(SIGQUIT, &s, NULL);
+	sigaction(SIGTERM, &s, NULL);
+	sigaction(SIGINT, &s, NULL);
 	
 	// apro il file di configurazione
 	configfilepath = readLocation(argv, argc);
@@ -909,7 +921,10 @@ int main(int argc, char *argv[]) {
 		fclose(descriptr);
 		printf("closed statfilepath\n");
 	}
-		
+	//TODO: empy list
+	cleanList(head);
+	close(socID);
+	remove(socketpath);
 	icl_hash_destroy(dataTable, cleaninFun, cleaninData);
 	printf("destroyed dataTable\n");
 	free(statfilepath);
@@ -917,6 +932,6 @@ int main(int argc, char *argv[]) {
 	free(thrds);
 	printf("freed stuff\n");
 	
-	
+	exit(EXIT_SUCCESS);
     return 0;
 }
