@@ -122,6 +122,7 @@ if [[ "$PUT" == "true" || "$GET" == "true" || "$UPDATE" == "true" || "$REMOVE" =
 				max=$count
 			fi
 			echo -e $'\t\t'$max
+		else echo -e '\n'		
 		fi
 	done
 else
