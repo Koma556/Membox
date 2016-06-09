@@ -15,7 +15,6 @@
 #define UNIX_PATH_MAX  64
 #endif
 
-//#include "message.h"
 #include "ops.h"
 #include "connections.h"
 #include <string.h>
@@ -194,38 +193,45 @@ int readData(long fd, message_data_t *data){
 	//salvo dimensione di data
 	memcpy(&data->len, &length, sizeof(unsigned int));
 	
-	//alloco storage per ospitare data
-	if((storage = calloc(length+1, sizeof(char))) == NULL)
+	//in caso il messaggio non abbia data->buf
+	if(length != 0)
 	{
-		errno = ENOMEM; 
-		return -1;
-	}
+		//alloco storage per ospitare data
+		if((storage = calloc(length+1, sizeof(char))) == NULL)
+		{
+			errno = ENOMEM; 
+			return -1;
+		}
 	
 	// leggo data dal socket 
-	ck = read(fd, storage, (sizeof(char)*length));
-	cnt += ck;
-	if(ck < 0)
-	{	
-		free(storage);
-		return -1;
-	}
-	// in caso la read non sia più atomica
-	else if(ck > 0)
-	{
-		while (cnt < length)
-		{
-			ck = read(fd, storage + cnt*sizeof(char), length - cnt);
-			if (ck < 1 )
-			{
-				free(storage);
-				return -1;
-			}
-
-			cnt += ck;
+		ck = read(fd, storage, (sizeof(char)*length));
+		cnt += ck;
+		if(ck < 0)
+		{	
+			free(storage);
+			return -1;
 		}
-	}
-	data->buf = storage;
+		// in caso la read non sia più atomica
+		else if(ck > 0)
+		{
+			while (cnt < length)
+			{
+				ck = read(fd, storage + cnt*sizeof(char), length - cnt);
+				if (ck < 1 )
+				{
+					free(storage);
+					return -1;
+				}
+
+				cnt += ck;
+			}
+		}
+		data->buf = storage;
 	
+	return 0;
+	}
+		
+	data->buf = NULL;
 	return 0;
 }
 

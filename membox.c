@@ -12,7 +12,7 @@
  *   Si dichiara che il contenuto di questo file e' in ogni sua parte opera  
  *   originale dell'autore.  
  */  
- */
+
 #define _POSIX_C_SOURCE 200809L
 #define UNIX_PATH_MAX  64
 #include <stdio.h>
@@ -25,11 +25,9 @@
 
 /* inserire gli altri include che servono */
 
-//#include "connections.c"
 #include <connections.h>
 #include <stats.h>
 #include <icl_hash.h>
-//#include "icl_hash.c"
 #include <message.h>
 #include <sys/types.h>
 #include <sys/socket.h> 

@@ -9,9 +9,9 @@
 ##########################################################
 # IMPORTANTE: completare la lista dei file da consegnare
 # 
-FILE_DA_CONSEGNARE=membox.c message.h ops.h stats.h DATA/membox.conf1 DATA/membox.conf2
+FILE_DA_CONSEGNARE=membox.c message.h ops.h stats.h icl_hash.c icl_hash.h connections.c connections.h membox.sh RelazioneProgettoMembox.pdf DATA/membox.conf1 DATA/membox.conf2
 # inserire il nome del tarball: es. NinoBixioGiuseppeGaribaldi
-TARNAME=NomeCognome
+TARNAME=GiuseppeCrea
 #
 ###########################################################
 
