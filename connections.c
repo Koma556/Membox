@@ -191,19 +191,19 @@ int readData(long fd, message_data_t *data){
 	}
 		
 	//salvo dimensione di data
-	memcpy(&data->len, &length, sizeof(unsigned int));
+	data->len = length;
 	
-	//in caso il messaggio non abbia data->buf
+	// in caso il messaggio non abbia data->buf
 	if(length != 0)
 	{
-		//alloco storage per ospitare data
+		// alloco storage per ospitare data
 		if((storage = calloc(length+1, sizeof(char))) == NULL)
 		{
 			errno = ENOMEM; 
 			return -1;
 		}
 	
-	// leggo data dal socket 
+		// leggo data dal socket 
 		ck = read(fd, storage, (sizeof(char)*length));
 		cnt += ck;
 		if(ck < 0)
@@ -228,7 +228,7 @@ int readData(long fd, message_data_t *data){
 		}
 		data->buf = storage;
 	
-	return 0;
+		return 0;
 	}
 		
 	data->buf = NULL;
@@ -237,6 +237,16 @@ int readData(long fd, message_data_t *data){
 
 
 /* da completare da parte dello studente con altri metodi di interfaccia */
+/**
+ * @function sendHeader
+ * @brief sends the message Header to the socket
+ * 
+ * @param fd		socket id
+ * @param msg		message which header has to be sent
+ * 
+ * @return 0 if successful, -1 otherwise
+ * 
+ */
 int sendHeader(long fd, message_t *msg){
 	char* storage;
 	
@@ -258,6 +268,16 @@ int sendHeader(long fd, message_t *msg){
 	return 0;
 }
 
+/**
+ * @function sendData
+ * @brief sends the message Dara to the socket
+ * 
+ * @param fd		socket id
+ * @param msg		message which data has to be sent
+ * 
+ * @return 0 if successful, -1 otherwise
+ * 
+ */
 int sendData(long fd, message_t *msg){
 	char* storage;
 	
@@ -269,8 +289,8 @@ int sendData(long fd, message_t *msg){
 		return -1;
 	}
 		
-	if(&msg->data.len != NULL) memcpy(storage, &msg->data.len, sizeof(unsigned int));
-	if(msg->data.buf != NULL) memcpy(storage+sizeof(op_t), msg->data.buf, sizeof(char)*msg->data.len);
+	if(&(msg->data.len) != NULL) memcpy(storage, &(msg->data.len), sizeof(unsigned int));
+	if(msg->data.buf != NULL) memcpy(storage+sizeof(unsigned int), msg->data.buf, sizeof(char)*msg->data.len);
 	
 	//mando data
 	if((write(fd, storage, sizeof(unsigned int)+(sizeof(char)*msg->data.len))) == -1){
@@ -343,7 +363,7 @@ int sendRequest(long fd, message_t *msg){
 int readReply(long fd, message_t *msg){
 		if(readHeader(fd, &msg->hdr) != 0)
 			return -1;
-		if(msg->hdr.op == GET_OP)
+		if(msg->hdr.op == GET_OP || msg->hdr.op == OP_FAIL)
 			if(readData(fd, &msg->data) != 0)
 				return -1;
 		return 0;

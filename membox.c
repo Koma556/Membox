@@ -37,13 +37,22 @@
 #include <errno.h>
 #include <ops.h>
 
+/**
+ * @struct listSimple
+ * @brief basic implementation of a single linked list to store waiting connections
+ * 
+ * @var sokAddr	socket identifier
+ * @var next		pointer to next element of the list
+ */
 typedef struct listS{
 	int sokAddr;
 	struct listS* next;
 }listSimple;
 
 static char *socketpath, *statfilepath;
+// variabili di configurazione
 static int maxconnections, threadsinpool, storagesize, storagebyte, maxobjsize;
+// variabile di terminazione usata in signal handling
 static volatile sig_atomic_t overlord = 1;
 static int activethreads = 0, queueLength = 0, replock = -1;
 static int highSocID = 0;
@@ -52,14 +61,14 @@ static pthread_t disp;
 // Struttura dati condivisa
 static icl_hash_t* dataTable;
 static listSimple* connectionQueue, *head;
-// mutex for active threads
+// mutex per active threads
 static pthread_mutex_t actvth = PTHREAD_MUTEX_INITIALIZER;
-// mutex to be called before a mboxStats update
+// mutex da chiamare per un aggiornamento di mboxStats
 static pthread_mutex_t stCO = PTHREAD_MUTEX_INITIALIZER;
-// mutex for connectionQueue
+// mutex per connectionQueue
 static pthread_mutex_t coQU = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t coQUwait = PTHREAD_COND_INITIALIZER;
-// mutex for dataTable
+// mutex per dataTable
 static pthread_mutex_t dataMUTEX = PTHREAD_MUTEX_INITIALIZER;
 /* struttura che memorizza le statistiche del server, struct statistics 
  * e' definita in stats.h.
@@ -67,6 +76,10 @@ static pthread_mutex_t dataMUTEX = PTHREAD_MUTEX_INITIALIZER;
  */
 struct statistics  mboxStats = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
+/* ---------------------------------------------------------------------- 
+ * Hashing funtions
+ * Well known hash function: Fowler/Noll/Vo - 32 bit version
+ */
 static inline unsigned int fnv_hash_function( void *key, int len ) {
     unsigned char *p = (unsigned char*)key;
     unsigned int h = 2166136261u;
@@ -85,27 +98,28 @@ static inline unsigned int ulong_hash_function( void *key ) {
 static inline int ulong_key_compare( void *key1, void *key2  ) {
     return ( *(unsigned long*)key1 == *(unsigned long*)key2 );
 }
-
+/* --------------------------------------------------------------
+ * end hashing functions. Taken from test_hash.c
+ */
+ 
+ /**
+ * @function shutDown
+ * @brief signal handler which stops the server
+ * 
+ */
 void shutDown(){
 	overlord = 0;
 	shutdown(highSocID, SHUT_RD);
 }
 
+/**
+ * @function printLog
+ * @brief signal handler for printing mbox_stats.txt
+ * 
+ */
 void printLog(){
-	int err2;
-	
-	if(statfilepath != NULL)
-	{
-		err2 = -1;
-		do
-			{
-			if((err2 = pthread_mutex_lock(&stCO)) == 0)
-				printStats(descriptr);
-			pthread_mutex_unlock(&stCO);
-		}
-		while(err2 != 0);
-		
-	}
+	if(statfilepath != NULL)	
+		printStats(descriptr);
 }
 
 /**
@@ -114,7 +128,9 @@ void printLog(){
  * 
  * @param opResult	the integer resulting from an OP function
  * @param op 		the operation which we need to stat
- */ //TODO: inplement mutex
+ * 
+ * @return 0 if successful, -1 otherwise
+ */
 int statOP(int opResult, op_t op, int length){
 	if(opResult == 0)
 	{
@@ -200,6 +216,8 @@ int statOP(int opResult, op_t op, int length){
  * @brief handles the mboxStats concurrent connections
  * 
  * @param side		flag to identify if a connection has been opened or closed
+ * 
+ * @return 0 if successful, -1 otherwise
  */
 int statConnections(int side){
 	if(side == 0) mboxStats.concurrent_connections++;
@@ -212,6 +230,15 @@ int statConnections(int side){
 	else return 0;
 }
 
+/**
+ * @function readLocation
+ * @brief function specifically built to read the location of our config file and store it
+ * 
+ * @param args		array of arguments passed at application startup
+ * @param argc		length of args
+ * 
+ * @return the path of the config file if successful, NULL otherwise
+ */
 char* readLocation(char** args, int argc){
 	char *tmp;
 	int i;
@@ -226,6 +253,14 @@ char* readLocation(char** args, int argc){
 	return NULL;
 }
 
+/**
+ * @function readLine
+ * @brief reads two consecutive lines of non-commented text
+ * 
+ * @param fd	File descriptor of the configuration file
+ * 
+ * @return the paths of the AF_UNIX socket to be used and the statfile path if successful, NULL otherwise
+ */
 char* readLine(FILE* fd){
 	char *str, *p, *tmp, *ret;
 	
@@ -264,6 +299,14 @@ char* readLine(FILE* fd){
 	return ret;
 }
 
+/**
+ * @function readConfig
+ * @brief reads from configuration file 5 consecutive non-comment numbers
+ * 
+ * @param fd		File Descriptor of the configuration file
+ * @param conf		array in which to save the configuration data
+ * 
+ */
 void readConfig(FILE* fd, int *conf){
 	int i;
 	char* str, *tmp;
@@ -287,6 +330,13 @@ void readConfig(FILE* fd, int *conf){
 	free(str);
 }
 
+/**
+ * @function cleanList
+ * @brief function used to free up the pending connections list
+ * 
+ * @param head		head of the list to free
+ * 
+ */
 void cleanList(listSimple *head){
 	listSimple* tmp;
 	
@@ -298,10 +348,24 @@ void cleanList(listSimple *head){
 	}
 }
 
+/**
+ * @function cleaninFun
+ * @brief used to free the key. Could simply be a free()
+ * 
+ * @param arg		the data to free
+ * 
+ */
 void cleaninFun(void* arg){
 	free(arg);
 }
 
+/**
+ * @function cleaninData
+ * @brief used to free the data structure
+ * 
+ * @param arg		the data structure to free
+ * 
+ */
 void cleaninData(void* arg){
 	message_data_t *tmp = arg;
 	free(tmp->buf);
@@ -312,8 +376,9 @@ void cleaninData(void* arg){
  * @function selectorOP
  * @brief deals with whatever operation the machine asked for
  * 
- * @param msg	puntatore al messaggio gia' spacchettato 
- * @param socID ID del socket sul quale sono connesso
+ * @param msg		pointer to the already unpacked message
+ * @param socID 	socket ID to which I'm connected
+ * @param oldop		operation the client requested
  */
 void selectorOP(message_t *msg, int socID, unsigned int oldop){
 	int err, result = 0;
@@ -559,6 +624,14 @@ void selectorOP(message_t *msg, int socID, unsigned int oldop){
 	while(err != 0);
 }
 
+/**
+ * @function initActivity
+ * @brief handles a shared variable which keeps track of active threads [debug use mostly]
+ * 
+ * @param flag		used to determine whether the thread is booting up or shutting down
+ * 
+ * @return an unique identifier for the thread. Use now deprecated.
+ */
 int initActivity(int flag){
 	int err = -1, thrdnumber;
 	do
@@ -577,6 +650,13 @@ int initActivity(int flag){
 	return thrdnumber;
 }
 
+/**
+ * @function dealmaker
+ * @brief the worker function which handles connections
+ * 
+ * @param args		unique identifier assigned by main to this thread
+ * 
+ */
 void* dealmaker (void* args){
 	int err, err2, soktAcc, thrdnumber = (intptr_t) args;
 	message_t *messg;
@@ -672,6 +752,13 @@ void* dealmaker (void* args){
 	pthread_exit(NULL);
 }
 
+/**
+ * @function dispatcher
+ * @brief handles incoming connection requests
+ * 
+ * @param args		NULL
+ * 
+ */
 void* dispatcher(void* args){
 	int tmpSockt;
 	int err = -1;
@@ -703,9 +790,11 @@ void* dispatcher(void* args){
 						msg = calloc(1, sizeof(message_t));
 						msg->hdr.op = OP_FAIL;
 						msg->hdr.key = -1;
-						msg->data.buf = calloc(20, sizeof(char));
-						sprintf(msg->data.buf, "connection refused\n");
-						sendReply(msg->hdr.op, msg, tmpSockt);
+						msg->data.len = 42;
+						msg->data.buf = calloc(42, sizeof(char));
+						strcpy(msg->data.buf, "connection refused\n");
+						sendHeader(tmpSockt, msg);
+						sendData(tmpSockt, msg);
 						free(msg->data.buf);
 						free(msg);
 						close(tmpSockt);
@@ -737,6 +826,8 @@ int main(int argc, char *argv[]) {
 	sigaction(SIGQUIT, &s, NULL);
 	sigaction(SIGTERM, &s, NULL);
 	sigaction(SIGINT, &s, NULL);
+	// unsure, gotta check
+	sigaction(SIGPIPE, NULL, NULL);
 	
 	// apro il file di configurazione
 	configfilepath = readLocation(argv, argc);
@@ -845,6 +936,5 @@ int main(int argc, char *argv[]) {
 	free(statfilepath);
 	free(socketpath);
 	free(thrds);
-	printf("All done!\n");
     return 0;
 }

@@ -115,14 +115,16 @@ max=0
 if [[ "$PUT" == "true" || "$GET" == "true" || "$UPDATE" == "true" || "$REMOVE" == "true" || "$CONNECTIONS" == "true" || "$SIZE" == "true" || "$OBJECTS" == "true" || "$MAXCONN" == "true" ]]; then
 	echo -e "TIMESTAMP\t"$put$update$get$remove$connections$size$objects$maxconn
 	while IFS=' ' read -u ${fd} -r line || [[ -n "$line" ]]; do
-		echo -e "$line" | cut --output-delimiter=$'\t' -d ' ' -f 1,${three},${four},${five},${six},${seven},${eight},${nine},${ten},${thirteen},${fourteen},${sixteen},${fifteen},${seventeen} | tr -d '\n'
+		echo -e "$line\c" | cut --output-delimiter=$'\t' -d ' ' -f 1,${three},${four},${five},${six},${seven},${eight},${nine},${ten},${thirteen},${fourteen},${sixteen} | tr -d '\n'
 		if [ "$MAXCONN" == true ] ; then
 			count=$(($(echo -e "$line" | cut --output-delimiter=$'\t' -d ' ' -f 13)))			
 			if [ "$count" -gt "$max" ]; then
 				max=$count
 			fi
+			echo -e $'\t\c'
+			echo -e "$line\c" | cut --output-delimiter=$'\t' -d ' ' -f ${fifteen},${seventeen} | tr -d '\n'
 			echo -e $'\t\t'$max
-		else echo -e '\n'		
+		else echo -e ' '		
 		fi
 	done
 else
